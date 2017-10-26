@@ -6,7 +6,6 @@
 ## templates assume that the Glance Image you provide via the
 ## image_id input variable is built from the
 ## examples/consul-glance-image/consul.json Packer template.
-
 provider "openstack" {
   alias  = "${var.region}"
   region = "${var.region}"
@@ -102,6 +101,9 @@ write_files:
       JOIN_IPV4_ADDR=${var.join_ipv4_addr}
       JOIN_IPV4_ADDR_WAN=${var.join_ipv4_addr_wan}
       CONSUL_AGENT_TAGS=${var.consul_agent_tags}
+  - path: /etc/sysconfig/network-scripts/route-eth0
+    content: |
+      ${var.cidr} dev eth0 scope link metric 0
 CLOUDCONFIG
   }
 }

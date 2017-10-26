@@ -1,0 +1,34 @@
+{
+    "min_packer_version": "0.12.0",
+    "variables": {
+        "identity_endpoint": "{{env `OS_AUTH_URL`}}",
+        "region": "GRA3",
+        "consul_version": "1.0.0",
+        "consul_sha256sum": "585782e1fb25a2096e1776e2da206866b1d9e1f10b71317e682e03125f22f479"
+    },
+    "builders": [
+        {
+            "type": "openstack",
+            "identity_endpoint": "{{user `identity_endpoint`}}",
+            "region": "{{user `region`}}",
+            "ssh_username": "centos",
+            "image_name": "consul-centos-{{isotime}}",
+            "source_image_name": "Centos 7",
+            "ssh_ip_version": "4",
+            "flavor": "s1-8",
+            "networks": ["eecc8610-f977-461c-bad2-917d7be01144"]
+        }
+    ],
+    "provisioners": [{
+        "type": "file",
+        "source": "{{template_dir}}/../../modules",
+        "destination": "/tmp"
+    },{
+        "type": "shell",
+        "inline": [
+            "/tmp/modules/install-consul/install-consul --version {{user `consul_version`}} --sha256sum {{user `consul_sha256sum`}}",
+            "/tmp/modules/install-dnsmasq/install-dnsmasq"
+        ],
+        "pause_before": "30s"
+    }]
+}

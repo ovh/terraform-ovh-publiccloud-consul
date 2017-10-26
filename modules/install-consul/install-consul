@@ -1,0 +1,217 @@
+#!/bin/bash
+# This script can be used to install Consul and its dependencies. This script has been tested with the CentOS 7 operating system.
+
+set -e
+
+readonly DEFAULT_INSTALL_PATH="/opt/consul"
+readonly DEFAULT_CONSUL_USER="consul"
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SYSTEM_BIN_DIR="/usr/local/bin"
+
+readonly SUPERVISOR_DIR="/etc/supervisor"
+readonly SUPERVISOR_CONF_DIR="$SUPERVISOR_DIR/conf.d"
+
+readonly SCRIPT_NAME="$(basename "$0")"
+
+function print_usage {
+  echo
+  echo "Usage: install-consul [OPTIONS]"
+  echo
+  echo "This script can be used to install Consul and its dependencies. This script has been tested with CentOS 7."
+  echo
+  echo "Options:"
+  echo
+  echo -e "  --version\t\tThe version of Consul to install. Required."
+  echo -e "  --sha256sum\t\tThe sha256 checksum of the Consul binary. Required."
+  echo -e "  --path\t\tThe path where Consul should be installed. Optional. Default: $DEFAULT_INSTALL_PATH."
+  echo -e "  --user\t\tThe user who will own the Consul install directories. Optional. Default: $DEFAULT_CONSUL_USER."
+  echo
+  echo "Example:"
+  echo
+  echo "  install-consul --version 1.0.0"
+}
+
+function log {
+  local readonly level="$1"
+  local readonly message="$2"
+  local readonly timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  >&2 echo -e "${timestamp} [${level}] [$SCRIPT_NAME] ${message}"
+}
+
+function log_info {
+  local readonly message="$1"
+  log "INFO" "$message"
+}
+
+function log_warn {
+  local readonly message="$1"
+  log "WARN" "$message"
+}
+
+function log_error {
+  local readonly message="$1"
+  log "ERROR" "$message"
+}
+
+function assert_not_empty {
+  local readonly arg_name="$1"
+  local readonly arg_value="$2"
+
+  if [[ -z "$arg_value" ]]; then
+    log_error "The value for '$arg_name' cannot be empty"
+    print_usage
+    exit 1
+  fi
+}
+
+# Install steps are based on: http://stackoverflow.com/a/31576473/483528
+function install_systemd_service {
+  sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/consul.service"
+  sudo sed -ie s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
+  sudo sed -ie "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
+  sudo systemctl enable consul.service
+}
+
+function has_yum {
+  [ -n "$(command -v yum)" ]
+}
+
+function install_dependencies {
+  log_info "Installing dependencies"
+
+  if $(has_yum); then
+#    sudo yum update -y
+    sudo yum install -y curl unzip nmap-ncat
+  else
+    log_error "Could not find yum. Cannot install dependencies on this OS."
+    exit 1
+  fi
+}
+
+function user_exists {
+  local readonly username="$1"
+  id "$username" >/dev/null 2>&1
+}
+
+function create_consul_user {
+  local readonly username="$1"
+
+  if $(user_exists "$username"); then
+    echo "User $username already exists. Will not create again."
+  else
+    log_info "Creating user named $username"
+    sudo useradd "$username"
+  fi
+}
+
+function create_consul_install_paths {
+  local readonly path="$1"
+  local readonly username="$2"
+
+  log_info "Creating install dirs for Consul at $path"
+  sudo mkdir -p "$path/bin"
+  sudo mkdir -p "$path/data"
+  sudo mkdir -p "$path/config"
+
+  log_info "Changing ownership of $path to $username"
+  sudo chown -R "$username:$username" "$path"
+}
+
+function install_binaries {
+  local readonly version="$1"
+  local readonly sha256sum="$2"
+  local readonly path="$3"
+  local readonly username="$4"
+
+  local readonly url="https://releases.hashicorp.com/consul/${version}/consul_${version}_linux_amd64.zip"
+  local readonly download_path="/tmp/consul_${version}_linux_amd64.zip"
+  local readonly bin_dir="$path/bin"
+
+  log_info "Downloading Consul $version from $url to $download_path"
+  curl -o "$download_path" "$url"
+   if [ "$sha256sum" != "$(sha256sum "$download_path" | awk '{print $1}')" ]; then
+       log_error "dl binary checksum error $sha256sum != $(sha256sum "$download_path" | awk '{print $1}')"
+       exit 1
+  fi
+
+  unzip -d /tmp "$download_path"
+
+  log_info "Moving Consul binary to $bin_dir/"
+  sudo mv "/tmp/consul" "$bin_dir/"
+  sudo chown "$username:$username" "$bin_dir/consul"
+  sudo chmod a+x "$bin_dir/consul"
+
+  local readonly symlink_path="$SYSTEM_BIN_DIR/consul"
+  if [[ -f "$symlink_path" ]]; then
+    log_info "Symlink $symlink_path already exists. Will not add again."
+  else
+    log_info "Adding symlink to $bin_dir/consul in $symlink_path"
+    sudo ln -s "$bin_dir/consul" "$symlink_path"
+  fi
+
+  log_info "Copying Consul run scripts to $bin_dir/"
+  sudo cp "$SCRIPT_DIR/../run-consul/consul-manage" "$bin_dir/"
+  sudo cp "$SCRIPT_DIR/../run-consul/functions.sh" "$bin_dir/"
+  sudo cp "$SCRIPT_DIR/../run-consul/defaults.conf" "$bin_dir/"
+  sudo sed -ie "s,/opt/consul,$path,g" "$bin_dir/defaults.conf"
+  sudo chown "$username:$username" "$bin_dir/"
+  sudo chmod a+x "$bin_dir/consul-manage"
+}
+
+function install {
+  local version=""
+  local path="$DEFAULT_INSTALL_PATH"
+  local user="$DEFAULT_CONSUL_USER"
+
+  while [[ $# > 0 ]]; do
+    local key="$1"
+
+    case "$key" in
+      --version)
+        version="$2"
+        shift
+        ;;
+      --sha256sum)
+          sha256sum="$2"
+          shift
+          ;;
+      --path)
+        path="$2"
+        shift
+        ;;
+      --user)
+        user="$2"
+        shift
+        ;;
+      --help)
+        print_usage
+        exit
+        ;;
+      *)
+        log_error "Unrecognized argument: $key"
+        print_usage
+        exit 1
+        ;;
+    esac
+
+    shift
+  done
+
+  assert_not_empty "--version" "$version"
+  assert_not_empty "--sha256sum" "$sha256sum"
+  assert_not_empty "--path" "$path"
+  assert_not_empty "--user" "$user"
+
+  log_info "Starting Consul install"
+
+  install_dependencies
+  create_consul_user "$user"
+  create_consul_install_paths "$path" "$user"
+  install_binaries "$version" "$sha256sum" "$path" "$user"
+  install_systemd_service
+
+  log_info "Consul install complete!"
+}
+
+install "$@"

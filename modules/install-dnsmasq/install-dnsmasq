@@ -1,0 +1,47 @@
+#!/bin/bash
+# Install Dnsmasq and configure it to forward requests for a specific domain to Consul. This script has been tested with the CentOS 7 operating system.
+set -e
+
+readonly DNSMASQ_CONFIG_DIR="/etc/dnsmasq.d"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_NAME="$(basename "$0")"
+
+function log {
+  local readonly level="$1"
+  local readonly message="$2"
+  local readonly timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  >&2 echo -e "${timestamp} [${level}] [$SCRIPT_NAME] ${message}"
+}
+
+function log_info {
+  local readonly message="$1"
+  log "INFO" "$message"
+}
+
+function log_error {
+  local readonly message="$1"
+  log "ERROR" "$message"
+}
+
+function install_dnsmasq {
+   log_info "Installing Dnsmasq"
+
+   if [[ -n "$(command -v yum)" ]]; then
+    sudo yum update -y
+    sudo yum install -y dnsmasq
+    echo "prepend domain-name-servers 127.0.0.1;" | sudo tee -a "/etc/dhcp/dhclient.conf" > /dev/null
+    echo "conf-dir=$DNSMASQ_CONFIG_DIR" | sudo tee -a "/etc/dnsmasq.conf" > /dev/null
+  else
+    log_error "Could not find apt-get or yum. Cannot install on this OS."
+    exit 1
+  fi
+
+  sudo mkdir -p /etc/systemd/system/dnsmasq.service.d
+  sudo cp "$SCRIPT_DIR/10-consul.conf" /etc/systemd/system/dnsmasq.service.d/
+  sudo systemctl daemon-reload
+  sudo systemctl enable dnsmasq.service
+}
+
+install_dnsmasq
+log_info "Dnsmasq install complete!"
+

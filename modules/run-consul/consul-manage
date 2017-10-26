@@ -1,0 +1,192 @@
+#!/bin/bash
+# shellcheck source=/dev/null
+source "$(dirname "$0")/functions.sh"
+
+conf(){
+    hostip=$(getprivipaddr)
+    tags=()
+    IFS=,
+    for i in $CONSUL_AGENT_TAGS; do
+        tags+=("\"$i\"")
+    done
+    unset IFS
+
+    if [ "$CONSUL_MODE" == "server" ]; then
+        tags+=("\"server\"")
+    fi
+
+    cat > "$CONSUL_CONF" <<EOF
+{
+    "node_name": "$(althostname)",
+    "datacenter": "$DATACENTER",
+    "domain" : "$DOMAIN",
+    "data_dir" : "${CONSUL_DATADIR}",
+    "log_level": "INFO",
+    "advertise_addr": "$hostip",
+    "bind_addr": "$hostip",
+    "client_addr": "127.0.0.1",
+    "addresses": {},
+    "ports": {
+      "http": 8500,
+      "dns": 8600
+    },
+    "log_level": "INFO"
+}
+EOF
+
+    if ! "$CONSUL_BIN" validate -config-dir "$CONSUL_CONFDIR"; then
+        log user.error "config files are not valid, exiting."
+        exit 1
+    fi
+}
+
+function check(){
+    consul info > /dev/null 2>&1
+}
+function check_cluster(){
+    consul operator raft list-peers | grep -q leader
+}
+
+# transform an address or list of ipv4
+# addresses separated by commas
+# into a list of retry-join IPv4 opts
+getjoinopts(){
+    JOINIPS_OPTS=()
+    IFS=,
+    for ip in $JOIN_IPV4_ADDR; do
+        if [ "$ip" != "$(getpubipaddr)" ] && [ "$ip" != "$(getprivipaddr)" ]; then
+            JOINIPS_OPTS+=(-retry-join "$ip")
+        fi
+    done
+    unset IFS
+    echo "${JOINIPS_OPTS[*]}"
+}
+
+# transform an address or list of ipv4 addresses
+# separated by commas
+# into a list of retry-join-wan IPv4 opts
+getjoinwanopts(){
+    JOINIPS_OPTS=()
+    IFS=,
+    for ip in $JOIN_IPV4_ADDR_WAN; do
+        JOINIPS_OPTS+=(-retry-join-wan "$ip")
+    done
+    unset IFS
+    echo "${JOINIPS_OPTS[*]}"
+}
+
+start() {
+    CONSUL_AGENT_OPTS=()
+    CONSUL_AGENT_OPTS+=(-config-dir "${CONSUL_CONFDIR}")
+    CONSUL_AGENT_OPTS+=($(getjoinopts))
+
+    case "$CONSUL_MODE" in
+        client)
+        ;;
+        server)
+            CONSUL_AGENT_OPTS+=(-server $(getjoinwanopts))
+            if [ ! -z "$CONSUL_BOOTSTRAP_EXPECT" ]; then
+                CONSUL_AGENT_OPTS+=(-bootstrap-expect $CONSUL_BOOTSTRAP_EXPECT)
+            fi
+            ;;
+        off)
+            exit 0
+            ;;
+        *)
+            log user.error "Unsupported mode $CONSUL_MODE. Choose either agent|server|off. Exiting."
+            exit 1
+        ;;
+    esac
+
+    case "$CONSUL_AUTOJOIN" in
+        aws)
+            if [ -z "$CONSUL_AUTOJOIN_AWS_TAG_KEY" ]; then
+                log user.error "CONSUL_AUTOJOIN_AWS_TAG_KEY is required in AUTOJOIN=aws"
+                exit 1
+            fi
+            if [ -z "$CONSUL_AUTOJOIN_AWS_TAG_VALUE" ]; then
+                log user.error "CONSUL_AUTOJOIN_AWS_TAG_VALUE is required in AUTOJOIN=aws"
+                exit 1
+            fi
+
+            CONSUL_AGENT_OPTS+=(-retry-join "provider=aws tag_key=$CONSUL_AUTOJOIN_AWS_TAG_KEY tag_value=$CONSUL_AUTOJOIN_AWS_TAG_VALUE")
+        ;;
+        os)
+            if [ -z "$CONSUL_AUTOJOIN_OS_TAG_KEY" ]; then
+                log user.error "CONSUL_AUTOJOIN_OS_TAG_KEY is required in AUTOJOIN=os"
+                exit 1
+            fi
+            if [ -z "$CONSUL_AUTOJOIN_OS_TAG_VALUE" ]; then
+                log user.error "CONSUL_AUTOJOIN_OS_TAG_VALUE is required in AUTOJOIN=os"
+                exit 1
+            fi
+
+            CONSUL_AGENT_OPTS+=(-retry-join "provider=os tag_key=$CONSUL_AUTOJOIN_OS_TAG_KEY tag_value=$CONSUL_AUTOJOIN_OS_TAG_VALUE")
+            ;;
+        gce)
+        ;;
+        azure)
+        ;;
+        *)
+            ;;
+    esac
+
+    log user.info "Starting agent with opts: ${CONSUL_AGENT_OPTS[*]}"
+    consulbin agent "${CONSUL_AGENT_OPTS[@]}"
+}
+
+reload() {
+    consulbin reload $(consulopts)
+}
+
+case "$CONSUL_MODE" in
+    client|server)
+        ;;
+    off)
+        log user.info "Consul is off"
+        exit 0
+        ;;
+    *)
+        log user.error "Unsupported mode '$CONSUL_MODE'. Choose either client|server|off. Exiting."
+        exit 1
+        ;;
+esac
+
+if [ ! -d "$CONSUL_DATADIR" ]; then
+    mkdir -p "$CONSUL_DATADIR"
+fi
+
+if [ ! -d "$CONSUL_CONFDIR" ]; then
+    mkdir -p "$CONSUL_CONFDIR"
+fi
+
+case $1 in
+    start)
+        log user.info "start"
+        start
+        ;;
+    stop)
+        log user.info "stop"
+        stop
+        ;;
+    reload)
+        log user.info "reload"
+        reload
+        ;;
+    conf)
+        log user.info "conf"
+        conf
+        ;;
+    check)
+        log user.info "check"
+        check
+        ;;
+    check-cluster)
+        log user.info "check-cluster"
+        check_cluster
+        ;;
+    *)
+        log user.info "check"
+        check
+        ;;
+esac

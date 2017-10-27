@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>consul</short>
+  <description>Consul makes it simple for services to register themselves and to discover other services via a DNS or HTTP interface. Register external services such as SaaS providers as well.</description>
+  <port protocol="tcp" port="8300"/>
+  <port protocol="tcp" port="8301"/>
+  <port protocol="tcp" port="8302"/>
+  <port protocol="tcp" port="8400"/>
+  <port protocol="tcp" port="8500"/>
+  <port protocol="tcp" port="8600"/>
+
+  <port protocol="udp" port="8300"/>
+  <port protocol="udp" port="8301"/>
+  <port protocol="udp" port="8302"/>
+  <port protocol="udp" port="8400"/>
+  <port protocol="udp" port="8500"/>
+  <port protocol="udp" port="8600"/>
+</service>

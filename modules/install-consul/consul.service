@@ -5,7 +5,6 @@ After=network-online.target
 
 [Service]
 User=consul
-EnvironmentFile=-/etc/sysconfig/consul
 Restart=on-failure
 ExecStartPre=-/opt/consul/bin/consul-manage conf
 ExecStart=/opt/consul/bin/consul-manage start

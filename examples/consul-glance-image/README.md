@@ -25,7 +25,8 @@ To build the Consul Glance Image:
 API](https://developer.openstack.org/api-guide/quick-start/api-quick-start.html). 
 1. Update the `variables` section of the `consul.json` Packer template to configure the Openstack region, Consul version, and 
    Dnsmasq version you wish to use.
-1. Run `packer build consul.json`.
+1. Run `packer build centos7-consul.json`.
+1. Or run `make centos7-consul`.
 
 When the build finishes, it will output the ID of the new Glance Image. To see how to deploy this image, check out the 
 [consul-cluster example](../..//MAIN.md).

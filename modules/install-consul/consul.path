@@ -1,0 +1,5 @@
+[Path]
+PathExists=/etc/sysconfig/consul.conf
+
+[Install]
+WantedBy=multi-user.target

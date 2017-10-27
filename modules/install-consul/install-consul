@@ -66,11 +66,17 @@ function assert_not_empty {
 }
 
 # Install steps are based on: http://stackoverflow.com/a/31576473/483528
-function install_systemd_service {
-  sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/consul.service"
-  sudo sed -ie s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
-  sudo sed -ie "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
-  sudo systemctl enable consul.service
+function setup_systemd_services {
+    local readonly username="$1"
+    sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/consul.service"
+    sudo cp "$SCRIPT_DIR/consul.path" "/etc/systemd/system/consul.path"
+    sudo sed -ie s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
+    sudo sed -ie "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
+    sudo systemctl enable consul.path
+
+    # disable firewalld. TODO: make a proper setup for consul
+    sudo systemctl stop firewalld
+    sudo systemctl mask firewalld
 }
 
 function has_yum {
@@ -82,7 +88,7 @@ function install_dependencies {
 
   if $(has_yum); then
 #    sudo yum update -y
-    sudo yum install -y curl unzip nmap-ncat
+    sudo yum install -y curl unzip nmap-ncat bind-utils
   else
     log_error "Could not find yum. Cannot install dependencies on this OS."
     exit 1
@@ -155,7 +161,7 @@ function install_binaries {
   sudo cp "$SCRIPT_DIR/../run-consul/functions.sh" "$bin_dir/"
   sudo cp "$SCRIPT_DIR/../run-consul/defaults.conf" "$bin_dir/"
   sudo sed -ie "s,/opt/consul,$path,g" "$bin_dir/defaults.conf"
-  sudo chown "$username:$username" "$bin_dir/"
+  sudo chown -R "$username:$username" "$path"
   sudo chmod a+x "$bin_dir/consul-manage"
 }
 
@@ -209,7 +215,7 @@ function install {
   create_consul_user "$user"
   create_consul_install_paths "$path" "$user"
   install_binaries "$version" "$sha256sum" "$path" "$user"
-  install_systemd_service
+  setup_systemd_services "$user"
 
   log_info "Consul install complete!"
 }

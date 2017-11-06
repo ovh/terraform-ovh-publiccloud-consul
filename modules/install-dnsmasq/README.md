@@ -8,8 +8,7 @@ There is a good chance it will work on other flavors of CentOS, and RHEL as well
 
 ## Quick start
 
-To install Dnsmasq, use `git` to clone this repository at a specific tag (see the [releases page](../../../../releases) 
-for all available tags) and run the `install-dnsmasq` script:
+To install Dnsmasq, use `git` to clone this repository at a specific tag (see the [releases page](../../../../releases) for all available tags) and run the `install-dnsmasq` script:
 
 ```
 git clone --branch <VERSION> https://github.com/hashicorp/terraform-aws-consul.git

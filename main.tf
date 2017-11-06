@@ -11,6 +11,10 @@ provider "openstack" {
   region = "${var.region}"
 }
 
+terraform {
+  required_version = ">= 0.9.3"
+}
+
 # AUTOMATICALLY LOOK UP THE LATEST PRE-BUILT GLANCE IMAGE
 # !! WARNING !! These exmaple Glance Images are meant only convenience when initially testing this repo. Do NOT use these example images in a production setting because it is important that you consciously think through the configuration you want in your own production image.
 #

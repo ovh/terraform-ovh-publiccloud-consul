@@ -1,11 +1,6 @@
 # Consul OVH Public Cloud Module
 
-This repo contains a Module for how to deploy a [Consul](https://www.consul.io/) cluster on 
-[OVH Public Cloud](https://ovhcloud.com/) using [Terraform](https://www.terraform.io/). Consul is a distributed, highly-available 
-tool that you can use for service discovery and key/value storage. A Consul cluster typically includes a small number
-of server nodes, which are responsible for being part of the [consensus 
-quorum](https://www.consul.io/docs/internals/consensus.html), and a larger number of client nodes, which you typically 
-run alongside your apps.
+This repo contains a Module for how to deploy a [Consul](https://www.consul.io/) cluster on [OVH Public Cloud](https://ovhcloud.com/) using [Terraform](https://www.terraform.io/). Consul is a distributed, highly-available tool that you can use for service discovery and key/value storage. A Consul cluster typically includes a small number of server nodes, which are responsible for being part of the [consensus quorum](https://www.consul.io/docs/internals/consensus.html), and a larger number of client nodes, which you typically run alongside your apps.
 
 # Usage
 
@@ -34,7 +29,7 @@ module "consul_servers" {
 
 ## Examples
 
-Each Module has the following folder structure:
+This module has the following folder structure:
 
 * [root](.): This folder shows an example of Terraform code which deploys a [Consul](https://www.consul.io/) cluster in [OVH Public Cloud](https://ovhcloud.com/).
 * [modules](./modules): This folder contains the reusable code for this Module, broken down into one or more modules.
@@ -60,4 +55,3 @@ This module was originally based on the [terraform-aws-consul module](https://gi
 ## License
 
 OVH Licensed. See [LICENSE](./LICENSE) for full details.
-

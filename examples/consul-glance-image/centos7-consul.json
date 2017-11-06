@@ -13,7 +13,7 @@
             "identity_endpoint": "{{user `identity_endpoint`}}",
             "region": "{{user `region`}}",
             "ssh_username": "centos",
-            "image_name": "consul-centos-{{isotime}}",
+            "image_name": "Centos 7 Consul",
             "source_image_name": "Centos 7",
             "ssh_ip_version": "4",
             "flavor": "s1-2",

@@ -4,6 +4,7 @@ provider "ovh" {
 
 provider "openstack" {
   region = "${var.region}"
+  alias  = "${var.region}"
 }
 
 # Import Keypair
@@ -13,7 +14,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 }
 
 module "network" {
-  source = "../../../publiccloud-network"
+  source = "ovh/publiccloud-network/ovh"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -33,10 +34,14 @@ module "network" {
     Terraform   = "true"
     Environment = "Consul"
   }
+ 
+  providers = {
+    "openstack" = "openstack.${var.region}"
+  }
 }
 
 module "consul_servers" {
-  source = "../../"
+  source = "ovh/publiccloud-consul/ovh"
 
   count             = 3
   name              = "example_consul_cluster"
@@ -58,6 +63,10 @@ module "consul_servers" {
   metadata = {
     Terraform   = "true"
     Environment = "Consul"
+  }
+
+  providers = {
+    "openstack" = "openstack.${var.region}"
   }
 }
 

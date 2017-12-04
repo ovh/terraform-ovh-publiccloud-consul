@@ -7,7 +7,7 @@ This repo contains a Module for how to deploy a [Consul](https://www.consul.io/)
 
 ```hcl
 module "consul_servers" {
-  source = "terraform-ovh-modules/publiccloud_consul/ovh"
+  source = "ovh/publiccloud-consul/ovh"
 
   count             = 3
   name              = "example_consul_cluster"

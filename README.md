@@ -32,19 +32,19 @@ module "consul_servers" {
 This module has the following folder structure:
 
 * [root](.): This folder shows an example of Terraform code which deploys a [Consul](https://www.consul.io/) cluster in [OVH Public Cloud](https://ovhcloud.com/).
-* [modules](./modules): This folder contains the reusable code for this Module, broken down into one or more modules.
-* [examples](./examples): This folder contains examples of how to use the modules.
+* [modules](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/modules): This folder contains the reusable code for this Module, broken down into one or more modules.
+* [examples](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples): This folder contains examples of how to use the modules.
 
 To deploy Consul servers using this Module:
 
-1. Create a Consul Glance Image using a Packer template that references the [install-consul module](./modules/install-consul).
-   Here is an [example Packer template](./examples/consul-glance-image#quick-start). 
+1. Create a Consul Glance Image using a Packer template that references the [install-consul module](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/modules/install-consul).
+   Here is an [example Packer template](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples/consul-glance-image#quick-start). 
       
-1. Deploy that Image using the Terraform [consul-cluster example](./examples/consul-cluster) 
+1. Deploy that Image using the Terraform [consul-cluster example](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples/consul-cluster) 
 
 ## How do I contribute to this Module?
 
-Contributions are very welcome! Check out the [Contribution Guidelines](CONTRIBUTING.md) for instructions.
+Contributions are very welcome! Check out the [Contribution Guidelines](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/CONTRIBUTING.md) for instructions.
 
 ## Authors
 
@@ -54,4 +54,4 @@ This module was originally based on the [terraform-aws-consul module](https://gi
 
 ## License
 
-The 3-Clause BSD License. See [LICENSE](./LICENSE) for full details.
+The 3-Clause BSD License. See [LICENSE](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/LICENSE) for full details.

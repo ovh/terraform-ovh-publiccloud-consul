@@ -15,7 +15,7 @@ conf(){
         tags+=("\"server\"")
     fi
 
-    cat > "$CONSUL_CONF" <<EOF
+    cat > "$CONSUL_CONFDIR/base.json" <<EOF
 {
     "node_name": "$(althostname)",
     "datacenter": "$DATACENTER",
@@ -33,6 +33,32 @@ conf(){
     "log_level": "INFO"
 }
 EOF
+
+    if [ -f "${CONSUL_CERTDIR}/cert.pem" ] && [ -f "${CONSUL_CERTDIR}/cert-key.pem" ]; then
+        cat > "$CONSUL_CONFDIR/tls.json" <<EOF
+{
+    "ports": {
+      "https": 8503
+    },
+    "cert_file": "${CONSUL_CERTDIR}/cert.pem",
+    "key_file": "${CONSUL_CERTDIR}/cert-key.pem",
+    "verify_incoming": true,
+    "verify_outgoing": true
+}
+EOF
+    else
+        rm -f "${CONSUL_CONFDIR}/tls.conf"
+    fi
+
+    if [ ! -z "${CONSUL_ENCRYPTKEY}" ]; then
+        cat > "$CONSUL_CONFDIR/encrypt.json" <<EOF
+{
+    "encrypt": "${CONSUL_ENCRYPTKEY}"
+}
+EOF
+    else
+        rm -f "${CONSUL_CONFDIR}/encrypt.conf"
+    fi
 
     if ! "$CONSUL_BIN" validate -config-dir "$CONSUL_CONFDIR"; then
         log user.error "config files are not valid, exiting."

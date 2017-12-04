@@ -5,7 +5,6 @@ process](https://help.github.com/articles/about-pull-requests/) for contribution
  
 1. [File a GitHub issue](#file-a-github-issue)
 1. [Update the documentation](#update-the-documentation)
-1. [Update the tests](#update-the-tests)
 1. [Update the code](#update-the-code)
 1. [Create a pull request](#create-a-pull-request)
 1. [Merge and release](#merge-and-release)
@@ -22,15 +21,6 @@ We recommend updating the documentation *before* updating any code (see [Readme 
 Development](http://tom.preston-werner.com/2010/08/23/readme-driven-development.html)). This ensures the documentation 
 stays up to date and allows you to think through the problem at a high level before you get lost in the weeds of 
 coding.
-
-## Update the tests
-
-We also recommend updating the automated tests *before* updating any code (see [Test Driven 
-Development](https://en.wikipedia.org/wiki/Test-driven_development)). That means you add or update a test case, 
-verify that it's failing with a clear error message, and *then* make the code changes to get that test to pass. This 
-ensures the tests stay up to date and verify all the functionality in this Module, including whatever new 
-functionality you're adding in your contribution. Check out the [tests](https://github.com/hashicorp/terraform-aws-consul/tree/master/test) folder for instructions on running the 
-automated tests. 
 
 ## Update the code
 
@@ -57,9 +47,9 @@ explaining why the change is absolutely necessary.
 Bear in mind that the Terraform code in this Module is used by real companies to run real infrastructure in 
 production, and certain types of changes could cause downtime. For example, consider the following:
 
-1. If you rename a resource (e.g. `aws_instance "foo"` -> `aws_instance "bar"`), Terraform will see that as deleting
+1. If you rename a resource (e.g. `openstack_compute_instance_v2 "foo"` -> `openstack_compute_instance_v2 "bar"`), Terraform will see that as deleting
    the old resource and creating a new one.
-1. If you change certain attributes of a resource (e.g. the `name` of an `aws_elb`), the cloud provider (e.g. AWS) may
+1. If you change certain attributes of a resource (e.g. the `name` of an `ovh_publiccloud_private_network`), the cloud provider (e.g. OVH) may
    treat that as an instruction to delete the old resource and a create a new one. 
    
 Deleting certain types of resources (e.g. virtual servers, load balancers) can cause downtime, so when making code
@@ -74,10 +64,6 @@ please make sure to call that out when you submit a pull request.
 to include the following:
 
 1. A description of the change, including a link to your GitHub issue.
-1. The output of your automated test run, preferably in a [GitHub Gist](https://gist.github.com/). We cannot run 
-   automated tests for pull requests automatically due to [security 
-   concerns](https://circleci.com/docs/fork-pr-builds/#security-implications), so we need you to manually provide this 
-   test output so we can verify that everything is working.
 1. Any notes on backwards incompatibility or downtime.
 
 ## Merge and release   

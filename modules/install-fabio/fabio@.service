@@ -1,0 +1,14 @@
+[Unit]
+Description=Fabio load balancer
+Wants=consul.service
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+
+EnvironmentFile=-/etc/sysconfig/fabio.conf
+EnvironmentFile=-/etc/sysconfig/fabio_%i.conf
+ExecStart=/opt/bin/fabio
+
+[Install]
+WantedBy=network.target

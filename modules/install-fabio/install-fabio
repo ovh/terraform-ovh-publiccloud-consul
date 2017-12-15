@@ -1,0 +1,138 @@
+#!/bin/bash
+# This script can be used to install Fabio and its dependencies. This script has been tested with CoreOS & CentOS 7 operating systems.
+
+set -e
+
+readonly DEFAULT_INSTALL_PATH="/opt/bin"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_NAME="$(basename "$0")"
+
+function print_usage {
+  echo
+  echo "Usage: install-fabio [OPTIONS]"
+  echo
+  echo "This script can be used to install Fabio and its dependencies. This script has been tested with CentOS 7."
+  echo
+  echo "Options:"
+  echo
+  echo -e "  --version\t\tThe version of Fabio to install. Required."
+  echo -e "  --sha256sum\t\tThe sha256 checksum of the Fabio binary. Required."
+  echo -e "  --path\t\tThe path where Fabio should be installed. Optional. Default: $DEFAULT_INSTALL_PATH."
+  echo
+  echo "Example:"
+  echo
+  echo "  install-fabio --version 1.0.0"
+}
+
+function log {
+  local readonly level="$1"
+  local readonly message="$2"
+  local readonly timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  >&2 echo -e "${timestamp} [${level}] [$SCRIPT_NAME] ${message}"
+}
+
+function log_info {
+  local readonly message="$1"
+  log "INFO" "$message"
+}
+
+function log_warn {
+  local readonly message="$1"
+  log "WARN" "$message"
+}
+
+function log_error {
+  local readonly message="$1"
+  log "ERROR" "$message"
+}
+
+function assert_not_empty {
+  local readonly arg_name="$1"
+  local readonly arg_value="$2"
+
+  if [[ -z "$arg_value" ]]; then
+    log_error "The value for '$arg_name' cannot be empty"
+    print_usage
+    exit 1
+  fi
+}
+
+# Install steps are based on: http://stackoverflow.com/a/31576473/483528
+function setup_systemd_services {
+    sudo cp "$SCRIPT_DIR/fabio@.service" "/etc/systemd/system/fabio@.service"
+    sudo sed -ie "s,/opt/fabio,$path,g" "/etc/systemd/system/fabio@.service"
+
+    # disable firewalld. TODO: make a proper setup for fabio
+    if systemctl list-unit-files --all | grep -q firewalld.service; then
+        sudo systemctl stop firewalld
+        sudo systemctl mask firewalld
+    fi
+}
+
+function install_binaries {
+  local readonly version="$1"
+  local readonly sha256sum="$2"
+  local readonly path="$3"
+  local readonly url="https://github.com/fabiolb/fabio/releases/download/v${version}/fabio-${version}-go1.9.2-linux_amd64"
+
+  log_info "Creating install dir for Fabio at $path"
+  sudo mkdir -p "$path"
+
+  log_info "Downloading Fabio $version from $url to /tmp"
+  curl -L -o "/tmp/fabio" "$url"
+  local dl_sha256=$(sha256sum "/tmp/fabio" | awk '{print $1}')
+  if [ "$sha256sum" != "$dl_sha256" ]; then
+      log_error "dl binary checksum error $sha256sum != $dl_sha256"
+      exit 1
+  fi
+  sudo mv /tmp/fabio "$path"
+  sudo chmod a+x "$path/fabio"
+}
+
+function install {
+  local version=""
+  local path="$DEFAULT_INSTALL_PATH"
+
+  while [[ $# > 0 ]]; do
+    local key="$1"
+
+    case "$key" in
+      --version)
+        version="$2"
+        shift
+        ;;
+      --sha256sum)
+          sha256sum="$2"
+          shift
+          ;;
+      --path)
+        path="$2"
+        shift
+        ;;
+      --help)
+        print_usage
+        exit
+        ;;
+      *)
+        log_error "Unrecognized argument: $key"
+        print_usage
+        exit 1
+        ;;
+    esac
+
+    shift
+  done
+
+  assert_not_empty "--version" "$version"
+  assert_not_empty "--sha256sum" "$sha256sum"
+  assert_not_empty "--path" "$path"
+
+  log_info "Starting Fabio install"
+
+  install_binaries "$version" "$sha256sum" "$path"
+  setup_systemd_services
+
+  log_info "Fabio install complete!"
+}
+
+install "$@"

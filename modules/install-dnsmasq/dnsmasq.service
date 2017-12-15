@@ -1,0 +1,29 @@
+[Unit]
+Description=DNS service
+Wants=consul.service
+After=network-online.target
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+
+Environment=DOMAIN=consul
+EnvironmentFile=-/opt/consul/bin/defaults.conf
+EnvironmentFile=-/etc/sysconfig/consul.conf
+EnvironmentFile=-/etc/environment
+
+ExecStartPre=/bin/sh -c '> /etc/dnsmasq.resolv.conf; for i in $(awk -F = \'/^DNS=/ {print $2}\' /var/run/systemd/netif/state); do echo nameserver $i >> /etc/dnsmasq.resolv.conf; done'
+ExecStartPre=/usr/bin/rkt trust --prefix "quay.io/coreos/dnsmasq" --trust-keys-from-https
+
+ExecStart=/usr/bin/rkt run --net=host \
+ --volume resolv,kind=host,source=/etc/dnsmasq.resolv.conf,readOnly=true \
+ --mount volume=resolv,target=/etc/resolv.dnsmasq.conf \
+ quay.io/coreos/dnsmasq \
+ --caps-retain=CAP_NET_ADMIN,CAP_NET_BIND_SERVICE,CAP_SETGID,CAP_SETUID,CAP_NET_RAW \
+ -- -d -q --resolv-file=/etc/resolv.dnsmasq.conf -S "/${DOMAIN}/127.0.0.1#8600"
+
+ExecStartPost=/bin/sh -c 'echo "[Resolve]\nDNS=${COREOS_PRIVATE_IPV4}" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
+ExecStopPost=/bin/sh -c 'grep -v "[Resolve]\n" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
+
+[Install]
+WantedBy=network.target

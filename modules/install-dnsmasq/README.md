@@ -2,7 +2,7 @@
 
 This folder contains a script for installing [Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and configuring it to forward requests for a specific domain to Consul. This way, you can easily use Consul as your DNS server for domain names such as `foo.service.consul`, where `foo` is a service registered with Consul (see the [Registering Services docs](https://www.consul.io/intro/getting-started/services.html) for instructions on registering your services with Consul). All other domain names will continue to be resolved via the default resolver on your OS. See the [Consul DNS Forwarding Guide](https://www.consul.io/docs/guides/forwarding.html) for more info. 
 
-This script has been tested on the CentOS 7 operating systems.
+This script has been tested on CoreOS & CentOS 7 operating systems.
 
 There is a good chance it will work on other flavors of CentOS, and RHEL as well.
 

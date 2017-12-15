@@ -6,11 +6,6 @@
 ## templates assume that the Glance Image you provide via the
 ## image_id input variable is built from the
 ## examples/consul-glance-image/consul.json Packer template.
-provider "openstack" {
-  alias  = "${var.region}"
-  region = "${var.region}"
-}
-
 terraform {
   required_version = ">= 0.9.3"
 }
@@ -20,22 +15,26 @@ terraform {
 #
 # NOTE: This Terraform data source must return at least one Image result or the entire template will fail.
 data "openstack_images_image_v2" "consul" {
-  provider    = "openstack.${var.region}"
   count       = "${var.image_id == "" ? 1 : 0}"
-  name        = "${lookup(var.image_names, var.region)}"
+  name        = "${var.image_name != "" ? var.image_name : lookup(var.image_names, var.region)}"
   most_recent = true
 }
 
-resource "openstack_networking_secgroup_v2" "servers_sg" {
-  provider = "openstack.${var.region}"
+data "openstack_networking_subnet_v2" "subnets" {
+  count        = "${var.count}"
+  subnet_id    = "${length(var.subnet_ids) > 0 ? format("%s", element(var.subnet_ids, count.index)) : ""}"
+  cidr         = "${length(var.subnets) > 0 && length(var.subnet_ids) < 1 ? format("%s", element(var.subnets, count.index)): ""}"
+  ip_version   = 4
+  dhcp_enabled = true
+}
 
+resource "openstack_networking_secgroup_v2" "servers_sg" {
   name        = "${var.name}_servers_sg"
   description = "${var.name} security group for consul server hosts"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "in_traffic_tcp" {
-  provider = "openstack.${var.region}"
-  count    = "${var.count > 0 ? 1  : 0 }"
+  count = "${var.count > 0 ? 1  : 0 }"
 
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -45,8 +44,7 @@ resource "openstack_networking_secgroup_rule_v2" "in_traffic_tcp" {
 }
 
 resource "openstack_networking_secgroup_rule_v2" "in_traffic_udp" {
-  provider = "openstack.${var.region}"
-  count    = "${var.count > 0 ? 1  : 0 }"
+  count = "${var.count > 0 ? 1  : 0 }"
 
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -56,85 +54,48 @@ resource "openstack_networking_secgroup_rule_v2" "in_traffic_udp" {
 }
 
 resource "openstack_networking_port_v2" "port_consul" {
-  provider = "openstack.${var.region}"
-  count    = "${var.count}"
+  count = "${var.count}"
 
   name               = "${var.name}_consul_server_port_${count.index}"
-  network_id         = "${var.network_id}"
+  network_id         = "${data.openstack_networking_subnet_v2.subnets.*.network_id[count.index]}"
   admin_state_up     = "true"
   security_group_ids = ["${openstack_networking_secgroup_v2.servers_sg.id}"]
 
   fixed_ip {
-    subnet_id = "${var.subnet_id}"
+    subnet_id = "${data.openstack_networking_subnet_v2.subnets.*.id[count.index]}"
   }
 }
 
 resource "openstack_compute_servergroup_v2" "consul" {
-  provider = "openstack.${var.region}"
   name     = "${var.name}-consul-servers-servergroup"
   policies = ["anti-affinity"]
 }
 
-data "template_file" "additional_files" {
-  count = "${length(var.additional_filepaths)}"
-
-  template = <<TPL
-- path: $${path}
-  content: |
-     $${content}
-TPL
-
-  vars {
-    path    = "${var.additional_filepaths[count.index]}"
-    content = "${indent(5, var.additional_filecontents[count.index])}"
-  }
-}
-
-# Render a multi-part cloudinit config making use of the part
-# above, and other source files
-data "template_cloudinit_config" "config" {
-  gzip          = true
-  base64_encode = true
-
-  part {
-    content_type = "text/cloud-config"
-
-    content = <<CLOUDCONFIG
-#cloud-config
-## This route has to be added in order to reach other subnets of the network
-bootcmd:
-    - ip route add ${var.cidr} dev eth0 scope link metric 0
-ca-certs:
-    trusted:
-       - ${var.cacert}
-write_files:
-  ${indent(2, join("\n", data.template_file.additional_files.*.rendered))}
-  - path: /etc/sysconfig/consul.conf
-    content: |
-      DOMAIN=${var.domain}
-      DATACENTER=${var.datacenter}
-      CONSUL_MODE=server
-      CONSUL_BOOTSTRAP_EXPECT=${var.count}
-      PRIVATE_NETWORK=${var.cidr}
-      JOIN_IPV4_ADDR=${join(",", coalescelist(var.join_ipv4_addr, flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)))}
-      JOIN_IPV4_ADDR_WAN=${join(",", var.join_ipv4_addr_wan)}
-      CONSUL_AGENT_TAGS=${join(",", var.agent_tags)}
-  - path: /etc/sysconfig/network-scripts/route-eth0
-    content: |
-      ${var.cidr} dev eth0 scope link metric 0
-CLOUDCONFIG
-  }
+module "userdata" {
+  source                  = "./modules/consul-userdata"
+  domain                  = "${var.domain}"
+  datacenter              = "${var.datacenter}"
+  agent_mode              = "${var.agent_mode}"
+  agent_tags              = ["${var.agent_tags}"]
+  cidr_blocks             = ["${concat(list(var.cidr), data.openstack_networking_subnet_v2.subnets.*.cidr)}"]
+  cacert                  = "${var.cacert}"
+  bootstrap_expect        = "${var.count}"
+  ssh_public_keys         = ["${var.ssh_public_keys}"]
+  join_ipv4_addr          = ["${coalescelist(var.join_ipv4_addr, flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips))}"]
+  join_ipv4_addr_wan      = ["${var.join_ipv4_addr_wan}"]
+  additional_units        = ["${var.additional_units}"]
+  additional_unitcontents = ["${var.additional_unitcontents}"]
+  additional_filepaths    = ["${var.additional_filepaths}"]
+  additional_filecontents = ["${var.additional_filecontents}"]
 }
 
 resource "openstack_compute_instance_v2" "consul" {
-  provider = "openstack.${var.region}"
   count    = "${var.count}"
   name     = "${var.name}_consul_server_${count.index}"
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
   flavor_name = "${lookup(var.flavor_names, var.region)}"
-  user_data   = "${data.template_cloudinit_config.config.rendered}"
-  key_pair    = "${var.ssh_key_pair}"
+  user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
 
   network {
     access_network = true
@@ -149,4 +110,40 @@ resource "openstack_compute_instance_v2" "consul" {
   # Note: As of today, this feature isn't used because it would require to give credentials to every instances with full access to the openstack API.
   # the first version of this module will bootstrap a first node that will be used as a "join ip"
   metadata = "${merge(map(var.cluster_tag_key, var.cluster_tag_value), var.metadata)}"
+}
+
+module "post_install_consul" {
+  source                  = "./modules/install-consul"
+  count                   = "${var.post_install_module ? var.count : 0}"
+  triggers                = "${openstack_compute_instance_v2.consul.*.id}"
+  ipv4_addrs              = ["${openstack_compute_instance_v2.consul.*.access_ip_v4}"]
+  ssh_user                = "${var.ssh_user}"
+  ssh_private_key         = "${var.ssh_private_key}"
+  ssh_bastion_host        = "${var.ssh_bastion_host}"
+  ssh_bastion_user        = "${var.ssh_bastion_user}"
+  ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
+}
+
+module "post_install_dnsmasq" {
+  source                  = "./modules/install-dnsmasq"
+  count                   = "${var.post_install_module ? var.count : 0}"
+  triggers                = "${openstack_compute_instance_v2.consul.*.id}"
+  ipv4_addrs              = ["${openstack_compute_instance_v2.consul.*.access_ip_v4}"]
+  ssh_user                = "${var.ssh_user}"
+  ssh_private_key         = "${var.ssh_private_key}"
+  ssh_bastion_host        = "${var.ssh_bastion_host}"
+  ssh_bastion_user        = "${var.ssh_bastion_user}"
+  ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
+}
+
+module "post_install_fabio" {
+  source                  = "./modules/install-fabio"
+  count                   = "${var.post_install_module ? var.count : 0}"
+  triggers                = "${openstack_compute_instance_v2.consul.*.id}"
+  ipv4_addrs              = ["${openstack_compute_instance_v2.consul.*.access_ip_v4}"]
+  ssh_user                = "${var.ssh_user}"
+  ssh_private_key         = "${var.ssh_private_key}"
+  ssh_bastion_host        = "${var.ssh_bastion_host}"
+  ssh_bastion_user        = "${var.ssh_bastion_user}"
+  ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
 }

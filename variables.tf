@@ -1,5 +1,10 @@
 variable "image_id" {
-  description = "The ID of the glance image to run in the cluster. This should be an image built from the Packer template under examples/consul-glance-image/consul.json. If the default value is used, Terraform will look up the latest image build automatically."
+  description = "The ID of the glance image to run in the cluster. If `post_install_module` is set to `false`, this should be an image built from the Packer template under examples/consul-glance-image/consul.json. If the default value is used, Terraform will look up the latest image build automatically."
+  default     = ""
+}
+
+variable "image_name" {
+  description = "The name of the glance image to run in the cluster. If `post_install_module` is set to `false`, this should be an image built from the Packer template under examples/consul-glance-image/consul.json. If the default value is used, Terraform will look up the latest image build automatically."
   default     = ""
 }
 
@@ -53,12 +58,28 @@ variable "cidr" {
   description = "The CIDR block of the Network. (e.g. 10.0.0.0/16)"
 }
 
-variable "network_id" {
-  description = "The id of the network in which the servers will be spawned."
+variable "subnet_ids" {
+  type = "list"
+
+  description = <<DESC
+The list of subnets ids to deploy consul nodes in.
+If `count` is specified, will spawn `count` consul node
+accross the list of subnets. Conflicts with `subnets`.
+DESC
+
+  default = []
 }
 
-variable "subnet_id" {
-  description = "The id of the subnet in which the servers will be spawned."
+variable "subnets" {
+  type = "list"
+
+  description = <<DESC
+The list of subnets CIDR blocks to deploy consul nodes in.
+If `count` is specified, will spawn `count` consul node
+accross the list of subnets. Conflicts with `subnet_ids`.
+DESC
+
+  default = [""]
 }
 
 variable "additional_filepaths" {
@@ -68,6 +89,16 @@ variable "additional_filepaths" {
 
 variable "additional_filecontents" {
   description = "List of additional file contents to add on the server nodes. Will be written accordingly with the \"additional_filepaths\" variable."
+  default     = []
+}
+
+variable "additional_units" {
+  description = "List of additional systemd unit to add on the server nodes. Useful to customize nodes, e.g. starting a fabio lb."
+  default     = []
+}
+
+variable "additional_unitcontents" {
+  description = "List of additional systemd units contents to add on the server nodes. Will be written accordingly with the \"additional_filepaths\" variable."
   default     = []
 }
 
@@ -110,12 +141,73 @@ variable "cluster_tag_value" {
   description = "The tag value the instances will filter for to automatically discover each other and form a cluster."
 }
 
-variable "ssh_key_pair" {
-  description = "The name of an  key pair that can be used to SSH to the instances in this cluster. Set to an empty string to not associate a Key Pair."
-  default     = ""
+variable "ssh_public_keys" {
+  type        = "list"
+  description = "The ssh public keys that can be used to SSH to the instances in this cluster."
+  default     = []
+}
+
+variable "agent_mode" {
+  description = "The agent mode of the consul nodes. Can be either `server` or `client`"
+  default     = "server"
 }
 
 variable "metadata" {
   description = "A map of metadata to add to all resources supporting it."
   default     = {}
+}
+
+variable "post_install_module" {
+  description = "Setting this variable to true will assume the necessary software to boot the cluster hasn't packaged in the image and thus will be post provisionned. Defaults to `false`"
+  default     = false
+}
+
+variable "ssh_user" {
+  description = "The ssh username of the image used to boot the consul cluster."
+  default     = "core"
+}
+
+variable "ssh_private_key" {
+  description = "The ssh private key used to post provision the consul cluster. This is required if `post_install_module` is set to `true`. It must be set accordingly to `ssh_key_pair"
+  default     = ""
+}
+
+variable "ssh_bastion_host" {
+  description = "The address of the bastion host used to post provision the consul cluster. This may be required if `post_install_module` is set to `true`"
+  default     = ""
+}
+
+variable "ssh_bastion_user" {
+  description = "The ssh username of the bastion host used to post provision the consul cluster. This may be required if `post_install_module` is set to `true`"
+  default     = ""
+}
+
+variable "ssh_bastion_private_key" {
+  description = "The ssh private key of the bastion host used to post provision the consul cluster. This may be required if `post_install_module` is set to `true`"
+  default     = ""
+}
+
+variable "ignition_mode" {
+  description = "Set to true if os family supports ignition, such as CoreOS distribution"
+  default     = false
+}
+
+variable "consul_version" {
+  description = "The version of consul to install with the post installation script if `post_install_module` is set to true"
+  default     = "1.0.1"
+}
+
+variable "consul_sha256sum" {
+  description = "The sha256 checksum of the consul binary to install with the post installation script if `post_install_module` is set to true"
+  default     = "eac5755a1d19e4b93f6ce30caaf7b3bd8add4557b143890b1c07f5614a667a68"
+}
+
+variable "fabio_version" {
+  description = "The version of fabio to install with the post installation script if `post_install_module` is set to true"
+  default     = "1.5.3"
+}
+
+variable "fabio_sha256sum" {
+  description = "The sha256 checksum of the fabio binary to install with the post installation script if `post_install_module` is set to true"
+  default     = "ad352a3e770215219c57257c5dcbb14aee83aa50db32ba34431372b570aa58e5"
 }

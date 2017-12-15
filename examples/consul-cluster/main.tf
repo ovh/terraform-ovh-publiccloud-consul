@@ -14,7 +14,8 @@ resource "openstack_compute_keypair_v2" "keypair" {
 }
 
 module "network" {
-  source = "ovh/publiccloud-network/ovh"
+  source  = "ovh/publiccloud-network/ovh"
+  version = ">= 0.0.7"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -34,27 +35,32 @@ module "network" {
     Terraform   = "true"
     Environment = "Consul"
   }
- 
+
   providers = {
     "openstack" = "openstack.${var.region}"
   }
 }
 
 module "consul_servers" {
-  source = "ovh/publiccloud-consul/ovh"
+  #  source          = "ovh/publiccloud-consul/ovh"
+  #  version         = ">= 0.0.6"
+  source = "../.."
 
-  count             = 3
-  name              = "example_consul_cluster"
-  cidr              = "10.0.0.0/16"
-  region            = "${var.region}"
-  datacenter        = "${lower(var.region)}"
-  network_id        = "${module.network.network_id}"
-  subnet_id         = "${module.network.private_subnets[0]}"
-  ssh_key_pair      = "${openstack_compute_keypair_v2.keypair.name}"
+  count           = 3
+  name            = "example_consul_cluster"
+  cidr            = "10.0.0.0/16"
+  region          = "${var.region}"
+  datacenter      = "${lower(var.region)}"
+  subnet_ids      = ["${module.network.private_subnets[0]}"]
+  ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
 
-  # TODO: build the consul image with the correct name
-  #  image_name  = "Centos 7 Consul"
-  image_id    = "478dacd7-8c72-462e-ac45-fc979b5d1238"
+  image_name              = "Centos 7"
+  post_install_module     = true
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 
   # as of today, this is not used but soon will be, so variable is made mandatory to
   # avoid future breaking change.
@@ -80,34 +86,49 @@ resource "openstack_networking_port_v2" "port_private_instance" {
   }
 }
 
+module "userdata" {
+  #  source         = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/userdata"
+  source          = "../../modules/consul-userdata"
+  domain          = "consul"
+  datacenter      = "${lower(var.region)}"
+  agent_mode      = "client"
+  cidr_blocks     = ["10.0.0.0/16"]
+  ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
+  join_ipv4_addr  = ["${module.consul_servers.ipv4_addrs}"]
+}
+
 resource "openstack_compute_instance_v2" "my_private_instance" {
   name        = "example_consul_client"
-  # TODO: build the consul image with the correct name
-  #  image_name  = "Centos 7 Consul"
-  image_id    = "478dacd7-8c72-462e-ac45-fc979b5d1238"
+  image_name  = "Centos 7"
   flavor_name = "s1-8"
-  key_pair    = "${openstack_compute_keypair_v2.keypair.name}"
-
-  user_data = <<USERDATA
-#cloud-config
-## This route has to be added in order to reach other subnets of the network
-bootcmd:
-  - ip route add 10.0.0.0/16 dev eth0 scope link metric 0
-write_files:
-  - path: /etc/sysconfig/network-scripts/route-eth0
-    content: |
-      10.0.0.0/16 dev eth0 scope link metric 0
-  - path: /etc/sysconfig/consul.conf
-    content: |
-      DOMAIN=consul
-      DATACENTER=${lower(var.region)}
-      CONSUL_MODE=client
-      PRIVATE_NETWORK=10.0.0.0/16
-      JOIN_IPV4_ADDR=${join(",", module.consul_servers.ipv4_addrs)}
-      CONSUL_AGENT_TAGS=myclient
-USERDATA
+  user_data   = "${module.userdata.cloudinit}"
 
   network {
-    port = "${openstack_networking_port_v2.port_private_instance.id}"
+    access_network = true
+    port           = "${openstack_networking_port_v2.port_private_instance.id}"
   }
+}
+
+module "provision_consul" {
+  #  source         = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/install-consul"
+  source                  = "../../modules/install-consul"
+  triggers                = ["${openstack_compute_instance_v2.my_private_instance.id}"]
+  ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
+}
+
+module "provision_dnsmasq" {
+  #  source         = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/install-dnsmasq"
+  source                  = "../../modules/install-dnsmasq"
+  triggers                = ["${openstack_compute_instance_v2.my_private_instance.id}"]
+  ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 }

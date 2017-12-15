@@ -1,8 +1,8 @@
 # Consul Install Script
 
-This folder contains a script for installing Consul and its dependencies. Use this script to create a Consul [an Openstack Glance Image](https://docs.openstack.org/glance/latest/) that can be deployed in [OVH Public Cloud](https://www.ovh.com/fr/public-cloud/instances/) across a Server Group using the [consul-cluster module](../consul-cluster).
+This folder contains a script for installing Consul and its dependencies. Use this script to create a Consul [an Openstack Glance Image](https://docs.openstack.org/glance/latest/) that can be deployed in [OVH Public Cloud](https://www.ovh.com/fr/public-cloud/instances/) across a Server Group using the [consul-cluster example](../../examples/consul-cluster).
 
-This script has been tested on the CentOS 7 operating system.
+This script has been tested on CoreOS & CentOS 7 operating system.
 
 There is a good chance it will work on other flavors of CentOS and RHEL as well.
 
@@ -15,13 +15,13 @@ for all available tags) and run the `install-consul` script:
 
 ```
 git clone --branch <VERSION> https://github.com/ovh/terraform-ovh-publiccloud-consul.git
-terraform--consul/modules/install-consul/install-consul --version 1.0.0
+terraform-ovh-publiccloud-consul/modules/install-consul/install-consul --version 1.0.0
 ```
 
 The `install-consul` script will install Consul and its dependencies.
 It contains a script and an associated systemd service definition which can be used to start Consul and configure it to automatically join other nodes to form a cluster when the server is booting.
 
-We recommend running the `install-consul` script as part of a [Packer](https://www.packer.io/) template to create a Consul [Glance Image](https://docs.openstack.org/glance/latest/) (see the [consul-glance-image example](../../examples/consul-glance-image) for a fully-working sample code). You can then deploy the image across a Server Group using the [consul-cluster module](../../modules/consul-cluster) (see the [main ](../../MAIN.md) for fully-working sample code).
+We recommend running the `install-consul` script as part of a [Packer](https://www.packer.io/) template to create a Consul [Glance Image](https://docs.openstack.org/glance/latest/) (see the [consul-glance-image example](../../examples/consul-glance-image) for a fully-working sample code). You can then deploy the image across a Server Group using the [consul-cluster example](../../examples/consul-cluster) (see the [main ](../../MAIN.md) for fully-working sample code).
 
 ## Command line Arguments
 
@@ -34,7 +34,7 @@ The `install-consul` script accepts the following arguments:
 Example:
 
 ```
-install-consul --version 1.0.0
+install-consul --version 1.0.1 --sha256sum eac5755a1d19e4b93f6ce30caaf7b3bd8add4557b143890b1c07f5614a667a68
 ```
 
 ## How it works

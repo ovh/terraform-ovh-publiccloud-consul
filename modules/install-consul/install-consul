@@ -7,11 +7,6 @@ readonly DEFAULT_INSTALL_PATH="/opt/consul"
 readonly DEFAULT_CONSUL_USER="consul"
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly SYSTEM_BIN_DIR="/usr/local/bin"
-
-readonly SUPERVISOR_DIR="/etc/supervisor"
-readonly SUPERVISOR_CONF_DIR="$SUPERVISOR_DIR/conf.d"
-
 readonly SCRIPT_NAME="$(basename "$0")"
 
 function print_usage {
@@ -75,23 +70,22 @@ function setup_systemd_services {
     sudo systemctl enable consul.path
 
     # disable firewalld. TODO: make a proper setup for consul
-    sudo systemctl stop firewalld
-    sudo systemctl mask firewalld
-}
-
-function has_yum {
-  [ -n "$(command -v yum)" ]
+    if systemctl list-unit-files --all | grep -q firewalld.service; then
+        sudo systemctl stop firewalld
+        sudo systemctl mask firewalld
+    fi
 }
 
 function install_dependencies {
   log_info "Installing dependencies"
 
-  if $(has_yum); then
-#    sudo yum update -y
-    sudo yum install -y curl unzip nmap-ncat bind-utils
+  if [ -n "$(command -v yum)" ]; then
+      sudo yum install -y curl unzip nmap-ncat bind-utils
+  elif [ -n "$(command -v coreos-install)" ]; then
+       log_info "Nothing to do for coreos"
   else
-    log_error "Could not find yum. Cannot install dependencies on this OS."
-    exit 1
+      log_error "Could not find yum. Cannot install dependencies on this OS."
+      exit 1
   fi
 }
 
@@ -147,14 +141,6 @@ function install_binaries {
   sudo mv "/tmp/consul" "$bin_dir/"
   sudo chown "$username:$username" "$bin_dir/consul"
   sudo chmod a+x "$bin_dir/consul"
-
-  local readonly symlink_path="$SYSTEM_BIN_DIR/consul"
-  if [[ -f "$symlink_path" ]]; then
-    log_info "Symlink $symlink_path already exists. Will not add again."
-  else
-    log_info "Adding symlink to $bin_dir/consul in $symlink_path"
-    sudo ln -s "$bin_dir/consul" "$symlink_path"
-  fi
 
   log_info "Copying Consul run scripts to $bin_dir/"
   sudo cp "$SCRIPT_DIR/consul-manage" "$bin_dir/"

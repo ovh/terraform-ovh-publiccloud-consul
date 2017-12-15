@@ -60,7 +60,7 @@ EOF
         rm -f "${CONSUL_CONFDIR}/encrypt.conf"
     fi
 
-    if ! "$CONSUL_BIN" validate -config-dir "$CONSUL_CONFDIR"; then
+    if ! "$CONSUL_BIN" validate "$CONSUL_CONFDIR"; then
         log user.error "config files are not valid, exiting."
         exit 1
     fi

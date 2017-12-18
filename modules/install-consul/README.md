@@ -70,6 +70,31 @@ Install the following:
 
 As of today, firewalld is disabled. The consul setup for firewalld hasn't been implemented. You should be aware of this and have a proper setup of your security group rules.
 
+### Using this script as a terraform module
+
+The install script can also be post provisionned using this folder as a terraform module.
+
+Here's a usage example:
+
+
+```hcl
+
+module "provision_consul" {
+  source                  = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/install-consul"
+  count                   = N
+  consul_version          = "1.0.1"
+  consul_sha256sum        = "...."
+  triggers                = ["A list of trigger values"]
+  ipv4_addrs              = ["192.168.1.200", "..."]
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "34.234.13.XX"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
+}
+```
+
+
 ### Follow-up tasks
 
 After the `install-consul` script finishes running, you may wish to do the following:

@@ -37,10 +37,10 @@ This module has the following folder structure:
 
 To deploy Consul servers using this Module:
 
-1. Create a Consul Glance Image using a Packer template that references the [install-consul module](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/modules/install-consul).
+1. (Optional) Create a Consul Glance Image using a Packer template that references the [install-consul module](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/modules/install-consul).
    Here is an [example Packer template](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples/consul-glance-image#quick-start). 
       
-1. Deploy that Image using the Terraform [consul-cluster example](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples/consul-cluster) 
+1. Deploy that Image using the Terraform [consul-cluster example](https://github.com/ovh/terraform-ovh-publiccloud-consul/tree/master/examples/consul-cluster). If you prebuilt a consul glance image with packer, you can comment the post provisionning modules arguments.
 
 ## How do I contribute to this Module?
 

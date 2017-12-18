@@ -13,7 +13,7 @@ It will:
 NOTES:
 
 * In a real scenario, you probably to setup TLS encryption and a consul encrypt key for RPC communication.
-* You may want to refer to the [network module](https://github.com/ovh/terraform-ovh-publiccloud-spark) to see how to associate a VRack to your project, use a preexisting network, spawn the cluster in a specific VLAN ID, ...
+* You may want to refer to the [network module](https://github.com/ovh/terraform-ovh-publiccloud-network) to see how to associate a VRack to your project, use a preexisting network, spawn the cluster in a specific VLAN ID, ...
 
 Usage
 =====

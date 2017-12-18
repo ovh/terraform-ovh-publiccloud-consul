@@ -55,6 +55,9 @@ module "consul_servers" {
   ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
 
   image_name              = "Centos 7"
+
+  ### comment the following block if you're using a glance image with
+  ### pre provisionned software.
   post_install_module     = true
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"

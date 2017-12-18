@@ -38,12 +38,35 @@ install-dnsmasq
 The dnsmasq setup will
 
 1. prepend the dnsmasq server for the networking dns resolver
-2. forward the dns request on the consul domain to 127.0.0.1 8600 which should be resolved by consul.
+2. forward the dns request on the consul domain to 127.0.0.1 8600 which should be resolved by con
+sul.
+
+
+
+### Using this script as a terraform module
+
+The install script can also be post provisionned using this folder as a terraform module.
+
+Here's a usage example:
+
+
+```hcl
+module "provision_dnsmasq" {
+  source                  = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/install-dnsmasq"
+  triggers                = ["A list of trigger values"]
+  ipv4_addrs              = ["192.168.1.200", "..."]
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "34.234.13.XX"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
+}
+```
 
 ## Troubleshooting
 
 Add the `+trace` argument to `dig` commands to more clearly see what's going on:
 
 ```
-dig vault.service.consul +trace
+dig consul.service.consul +trace
 ```

@@ -16,6 +16,10 @@ EOF
 and then ssh into your private boxes by typing:
 ---
 $ ssh ${openstack_compute_instance_v2.my_private_instance.name}
+$ /opt/consul/bin/consul members
+...
+$ ping consul.service.consul
+...
 ---
 DESC
 }

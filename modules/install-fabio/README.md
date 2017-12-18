@@ -58,3 +58,28 @@ Installs the following:
 * `fabio@.service`: Install systemd template service into `/etc/systemd/system/`. 
 
 The template will try to load the `/etc/sysconfig/fabio_%i.conf` env file.
+
+
+### Using this script as a terraform module
+
+The install script can also be post provisionned using this folder as a terraform module.
+
+Here's a usage example:
+
+
+```hcl
+
+module "provision_fabio" {
+  source                  = "github.com/ovh/terraform-ovh-publiccloud-consul//modules/install-fabio"
+  count                   = N
+  fabio_version           = "1.5.3"
+  fabio_sha256sum         = "...."
+  triggers                = ["A list of trigger values"]
+  ipv4_addrs              = ["192.168.1.200", "..."]
+  ssh_user                = "centos"
+  ssh_private_key         = "${file("~/.ssh/id_rsa")}"
+  ssh_bastion_host        = "34.234.13.XX"
+  ssh_bastion_user        = "core"
+  ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
+}
+```

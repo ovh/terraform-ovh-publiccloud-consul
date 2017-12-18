@@ -41,7 +41,6 @@ variable "flavor_names" {
 
 variable "region" {
   description = "The OVH region to deploy into (e.g. GRA3, BHS3, ...)."
-  default     = "GRA3"
 }
 
 variable "name" {

@@ -69,7 +69,9 @@ resource "openstack_networking_port_v2" "public_port_consul" {
   name               = "${var.name}_consul_public_port_${count.index}"
   network_id         = "${data.openstack_networking_subnet_v2.ext_net.network_id}"
   admin_state_up     = "true"
-  security_group_ids = ["${openstack_networking_secgroup_v2.public_servers_sg.id}"]
+  security_group_ids = [
+    "${compact(concat(list(openstack_networking_secgroup_v2.public_servers_sg.id),var.public_security_group_ids))}"
+  ]
 }
 
 resource "openstack_networking_port_v2" "port_consul" {
@@ -78,7 +80,9 @@ resource "openstack_networking_port_v2" "port_consul" {
   name               = "${var.name}_consul_port_${count.index}"
   network_id         = "${data.openstack_networking_subnet_v2.subnets.*.network_id[count.index]}"
   admin_state_up     = "true"
-  security_group_ids = ["${openstack_networking_secgroup_v2.servers_sg.id}"]
+  security_group_ids = [
+    "${compact(concat(list(openstack_networking_secgroup_v2.servers_sg.id),var.security_group_ids))}"
+  ]
 
   fixed_ip {
     subnet_id = "${data.openstack_networking_subnet_v2.subnets.*.id[count.index]}"

@@ -101,6 +101,18 @@ variable "additional_unitcontents" {
   default     = []
 }
 
+variable "security_group_ids" {
+  type        = "list"
+  description = "An optional list of additional security groups to attach to private ports"
+  default     = []
+}
+
+variable "public_security_group_ids" {
+  type        = "list"
+  description = "An optional list of additional security groups to attach to public ports"
+  default     = []
+}
+
 variable "cacert" {
   description = "Optional ca certificate to add to the server nodes."
   default     = ""

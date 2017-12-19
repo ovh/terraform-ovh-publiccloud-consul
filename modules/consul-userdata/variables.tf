@@ -70,3 +70,8 @@ variable "bootstrap_expect" {
   description = "The expect number of consul servers to achieve bootstrap phase"
   default     = 1
 }
+
+variable "public_facing" {
+  description = "Determines if the node is internet public facing, meaning it has an interface with an internet public ipv4. Interface must be eth1 for internet traffic. eth0 is reserved for private traffic."
+  default     = false
+}

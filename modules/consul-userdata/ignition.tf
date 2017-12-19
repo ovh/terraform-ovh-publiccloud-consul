@@ -57,6 +57,25 @@ RouteMetric=2048
 IGNITION
 }
 
+data "ignition_networkd_unit" "eth1" {
+  name = "10-eth1.network"
+
+  content = <<IGNITION
+[Match]
+Name=eth1
+[Network]
+DHCP=ipv4
+[Route]
+Destination=0.0.0.0/0
+GatewayOnLink=yes
+RouteMetric=3
+Scope=link
+Protocol=kernel
+[DHCP]
+RouteMetric=2048
+IGNITION
+}
+
 data "ignition_systemd_unit" "additional-units" {
   count   = "${length(var.additional_units)}"
   enabled = true
@@ -95,6 +114,7 @@ data "ignition_config" "coreos" {
 
   networkd = [
     "${data.ignition_networkd_unit.eth0.id}",
+    "${data.ignition_networkd_unit.eth1.id}",
   ]
 
   files = [

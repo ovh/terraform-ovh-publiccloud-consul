@@ -210,3 +210,8 @@ variable "fabio_sha256sum" {
   description = "The sha256 checksum of the fabio binary to install with the post installation script if `post_install_module` is set to true"
   default     = "ad352a3e770215219c57257c5dcbb14aee83aa50db32ba34431372b570aa58e5"
 }
+
+variable "associate_public_ipv4" {
+  description = "Associate a public ipv4 with the consul nodes"
+  default     = false
+}

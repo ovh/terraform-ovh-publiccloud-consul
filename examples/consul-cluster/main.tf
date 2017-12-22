@@ -15,7 +15,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.7"
+  version = ">= 0.0.10"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"

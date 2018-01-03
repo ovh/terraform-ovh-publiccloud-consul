@@ -78,7 +78,8 @@ resource "openstack_networking_port_v2" "port_consul" {
   count = "${var.count}"
 
   name               = "${var.name}_consul_port_${count.index}"
-  network_id         = "${data.openstack_networking_subnet_v2.subnets.*.network_id[count.index]}"
+  #  network_id         = "${element(data.openstack_networking_subnet_v2.subnets.*.network_id, count.index)}"
+  network_id         = "${var.network_id}"
   admin_state_up     = "true"
   security_group_ids = [
     "${compact(concat(list(openstack_networking_secgroup_v2.servers_sg.id),var.security_group_ids))}"

@@ -51,6 +51,7 @@ module "consul_servers" {
   cidr            = "10.0.0.0/16"
   region          = "${var.region}"
   datacenter      = "${lower(var.region)}"
+  network_id      = "${module.network.network_id}"
   subnet_ids      = ["${module.network.private_subnets[0]}"]
   ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
 

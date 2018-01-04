@@ -26,7 +26,8 @@ resource "null_resource" "post_install_dnsmasq" {
   provisioner "remote-exec" {
     inline = [
       "/bin/sh -x /tmp/install-dnsmasq/install-dnsmasq",
-      "sudo systemctl restart dnsmasq ${var.ignition_mode ? : "" : "NetworkManager"}"
+      "sudo systemctl restart dnsmasq",
+      "if systemctl is-active NetworkManager; then sudo systemctl restart NetworkManager; fi"
     ]
   }
 

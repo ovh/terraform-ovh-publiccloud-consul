@@ -22,7 +22,7 @@ ExecStart=/usr/bin/rkt run --net=host \
  --caps-retain=CAP_NET_ADMIN,CAP_NET_BIND_SERVICE,CAP_SETGID,CAP_SETUID,CAP_NET_RAW \
  -- -d -q --resolv-file=/etc/resolv.dnsmasq.conf -S "/${DOMAIN}/127.0.0.1#8600"
 
-ExecStartPost=/bin/sh -c 'echo "[Resolve]\nDNS=${COREOS_PRIVATE_IPV4}" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
+ExecStartPost=/bin/sh -c 'echo "[Resolve]\nDNS=127.0.0.1" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
 ExecStopPost=/bin/sh -c 'grep -v "[Resolve]\n" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
 
 [Install]

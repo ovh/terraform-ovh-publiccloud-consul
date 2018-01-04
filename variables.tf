@@ -57,6 +57,11 @@ variable "cidr" {
   description = "The CIDR block of the Network. (e.g. 10.0.0.0/16)"
 }
 
+variable "public_network_id" {
+  description = "The network_id is not yet accessible through the openstack subnet datasource but it will soon be released. Meanwhile this attribute must be set. It will become deprecated as soon as the openstack provider is released."
+  default = ""
+}
+
 variable "network_id" {
   description = "The network_id is not yet accessible through the openstack subnet datasource but it will soon be released. Meanwhile this attribute must be set. It will become deprecated and optional as soon as the openstack provider is released."
 }

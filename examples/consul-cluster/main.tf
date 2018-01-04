@@ -15,15 +15,15 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.10"
+  version = ">= 0.0.11"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
   name            = "example_consul_cluster"
-  cidr            = "10.0.0.0/16"
+  cidr            = "${var.cidr}"
   region          = "${var.region}"
-  public_subnets  = ["10.0.0.0/24"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["${cidrsubnet(var.cidr,8,0)}"]
+  private_subnets = ["${cidrsubnet(var.cidr,8,1)}", "${cidrsubnet(var.cidr,8,2)}"]
 
   enable_nat_gateway = true
   single_nat_gateway = true
@@ -48,7 +48,7 @@ module "consul_servers" {
 
   count           = 3
   name            = "example_consul_cluster"
-  cidr            = "10.0.0.0/16"
+  cidr            = "${var.cidr}"
   region          = "${var.region}"
   datacenter      = "${lower(var.region)}"
   network_id      = "${module.network.network_id}"
@@ -96,7 +96,7 @@ module "userdata" {
   domain          = "consul"
   datacenter      = "${lower(var.region)}"
   agent_mode      = "client"
-  cidr_blocks     = ["10.0.0.0/16"]
+  cidr_blocks     = ["${var.cidr}"]
   ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
   join_ipv4_addr  = ["${module.consul_servers.ipv4_addrs}"]
 }

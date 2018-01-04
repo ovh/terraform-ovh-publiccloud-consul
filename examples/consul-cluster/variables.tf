@@ -5,3 +5,8 @@ variable "region" {
 variable "project_id" {
   description = "The id of the openstack project"
 }
+
+variable "cidr" {
+  description = "The cidr of the network"
+  default     = "10.0.0.0/16"
+}

@@ -43,7 +43,7 @@ module "network" {
 
 module "consul_servers" {
   #  source          = "ovh/publiccloud-consul/ovh"
-  #  version         = ">= 0.0.6"
+  #  version         = ">= 0.0.8"
   source = "../.."
 
   count           = 3

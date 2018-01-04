@@ -3,7 +3,7 @@ output "security_group_id" {
 }
 
 output "public_security_group_id" {
-  value = "${openstack_networking_secgroup_v2.public_servers_sg.id}"
+  value = "${join("", openstack_networking_secgroup_v2.public_servers_sg.*.id)}"
 }
 
 output "instance_ids" {

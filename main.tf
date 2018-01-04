@@ -34,7 +34,7 @@ data "openstack_networking_network_v2" "ext_net" {
 }
 
 resource "openstack_networking_secgroup_v2" "servers_sg" {
-  name        = "${var.name}_${var.agent_mode}s_sg"
+  name        = "${var.name}_${var.agent_mode}_sg"
   description = "${var.name} security group for consul ${var.agent_mode} hosts"
 }
 
@@ -59,6 +59,7 @@ resource "openstack_networking_secgroup_rule_v2" "in_traffic_udp" {
 }
 
 resource "openstack_networking_secgroup_v2" "public_servers_sg" {
+  count       = "${var.associate_public_ipv4 ? 1 : 0}"
   name        = "${var.name}_${var.agent_mode}s_pub_sg"
   description = "${var.name} security group for public ingress traffic on consul ${var.agent_mode} hosts"
 }
@@ -67,10 +68,11 @@ resource "openstack_networking_port_v2" "public_port_consul" {
   count = "${var.associate_public_ipv4 ? var.count : 0}"
 
   name               = "${var.name}_consul_public_port_${count.index}"
-  network_id         = "${data.openstack_networking_network_v2.ext_net.network_id}"
+  # network_id         = "${data.openstack_networking_network_v2.ext_net.network_id}"
+  network_id  = "${var.public_network_id}"
   admin_state_up     = "true"
   security_group_ids = [
-    "${compact(concat(list(openstack_networking_secgroup_v2.public_servers_sg.id),var.public_security_group_ids))}"
+    "${compact(concat(openstack_networking_secgroup_v2.public_servers_sg.*.id,var.public_security_group_ids))}"
   ]
 }
 

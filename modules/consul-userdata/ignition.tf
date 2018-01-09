@@ -65,12 +65,6 @@ data "ignition_networkd_unit" "eth1" {
 Name=eth1
 [Network]
 DHCP=ipv4
-[Route]
-Destination=0.0.0.0/0
-GatewayOnLink=yes
-RouteMetric=3
-Scope=link
-Protocol=kernel
 [DHCP]
 RouteMetric=2048
 IGNITION

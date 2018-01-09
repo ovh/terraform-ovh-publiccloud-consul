@@ -34,7 +34,6 @@ ssh_authorized_keys:
   ${length(var.ssh_public_keys) > 0 ? indent(2, join("\n", formatlist("- %s", var.ssh_public_keys))) : ""}
 bootcmd:
   ${indent(2, join("\n", formatlist(local.ip_route_add_tpl, var.cidr_blocks, "eth0")))}
-  ${var.public_facing? format(local.ip_route_add_tpl, "0.0.0.0/0", "eth1") : ""}
 runcmd:
   ${length(var.additional_units) > 0 ? indent(2, join("\n", concat(formatlist("- systemctl enable %s", var.additional_units), formatlist("- systemctl start %s", var.additional_units)))) : ""}
 ca-certs:
@@ -55,9 +54,6 @@ write_files:
   - path: /etc/sysconfig/network-scripts/route-eth0
     content: |
       ${indent(6, join("\n", formatlist(local.eth_route_tpl, var.cidr_blocks, "eth0")))}
-  - path: /etc/sysconfig/network-scripts/route-eth1
-    content: |
-      ${format(local.eth_route_tpl, "0.0.0.0/0", "eth1")}
 CLOUDCONFIG
   }
 }

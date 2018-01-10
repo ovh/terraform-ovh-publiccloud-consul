@@ -11,9 +11,9 @@ output "instance_ids" {
 }
 
 output "ipv4_addrs" {
-  value = ["${flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)}"]
+  value = ["${compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", "")))}"]
 }
 
 output "public_ipv4_addrs" {
-  value = ["${flatten(openstack_networking_port_v2.public_port_consul.*.all_fixed_ips)}"]
+  value = ["${compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.public_port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", "")))}"]
 }

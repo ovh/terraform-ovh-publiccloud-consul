@@ -1,10 +1,11 @@
 provider "ovh" {
+  version = "~> 0.2"
   endpoint = "ovh-eu"
 }
 
 provider "openstack" {
+  version = "~> 1.0"
   region = "${var.region}"
-  alias  = "${var.region}"
 }
 
 # Import Keypair
@@ -36,9 +37,6 @@ module "network" {
     Environment = "Consul"
   }
 
-  providers = {
-    "openstack" = "openstack.${var.region}"
-  }
 }
 
 module "consul_servers" {
@@ -75,9 +73,6 @@ module "consul_servers" {
     Environment = "Consul"
   }
 
-  providers = {
-    "openstack" = "openstack.${var.region}"
-  }
 }
 
 resource "openstack_networking_port_v2" "port_private_instance" {

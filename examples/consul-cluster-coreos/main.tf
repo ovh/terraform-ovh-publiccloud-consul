@@ -1,10 +1,11 @@
 provider "ovh" {
+  version = "~> 0.2"
   endpoint = "ovh-eu"
 }
 
 provider "openstack" {
+  version = "~> 1.0"
   region = "${var.region}"
-  alias  = "${var.region}"
 }
 
 # Import Keypair
@@ -15,7 +16,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.11"
+  version = ">= 0.0.14"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -36,9 +37,6 @@ module "network" {
     Environment = "Consul"
   }
 
-  providers = {
-    "openstack" = "openstack.${var.region}"
-  }
 }
 
 module "consul_servers" {
@@ -46,16 +44,18 @@ module "consul_servers" {
   #  version         = ">= 0.0.8"
   source = "../.."
 
-  count           = 3
-  name            = "example_consul_cluster_coreos"
-  cidr            = "${var.cidr}"
-  region          = "${var.region}"
-  datacenter      = "${lower(var.region)}"
-  network_id      = "${module.network.network_id}"
-  subnet_ids      = ["${module.network.private_subnets[0]}"]
-  ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
-  image_name      = "CoreOS Stable"
-  ignition_mode   = true
+  count                 = 3
+  name                  = "example_consul_cluster_coreos"
+  cidr                  = "${var.cidr}"
+  region                = "${var.region}"
+  datacenter            = "${lower(var.region)}"
+  network_id            = "${module.network.network_id}"
+  subnet_ids            = ["${module.network.private_subnets[0]}"]
+  ssh_public_keys       = ["${openstack_compute_keypair_v2.keypair.public_key}"]
+  image_name            = "CoreOS Stable"
+  ignition_mode         = true
+  associate_public_ipv4 = true
+  public_network_id     = "${lookup(var.public_network_ids, var.region)}"
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
@@ -76,9 +76,6 @@ module "consul_servers" {
     Environment = "Consul"
   }
 
-  providers = {
-    "openstack" = "openstack.${var.region}"
-  }
 }
 
 resource "openstack_networking_port_v2" "port_private_instance" {

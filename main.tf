@@ -67,29 +67,56 @@ resource "openstack_networking_secgroup_v2" "public_servers_sg" {
 resource "openstack_networking_port_v2" "public_port_consul" {
   count = "${var.associate_public_ipv4 ? var.count : 0}"
 
-  name               = "${var.name}_consul_public_port_${count.index}"
+  name = "${var.name}_consul_public_port_${count.index}"
+
   # network_id         = "${data.openstack_networking_network_v2.ext_net.network_id}"
-  network_id  = "${var.public_network_id}"
-  admin_state_up     = "true"
+  network_id     = "${var.public_network_id}"
+  admin_state_up = "true"
+
   security_group_ids = [
-    "${compact(concat(openstack_networking_secgroup_v2.public_servers_sg.*.id,var.public_security_group_ids))}"
+    "${compact(concat(openstack_networking_secgroup_v2.public_servers_sg.*.id,var.public_security_group_ids))}",
   ]
+}
+
+data "template_file" "public_ipv4_addrs" {
+  count    = "${var.associate_public_ipv4 ? var.count : 0}"
+  template = "${element(compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.public_port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", ""))), count.index)}"
+}
+
+data "template_file" "public_ipv4_dns" {
+  count    = "${var.associate_public_ipv4 ? var.count : 0}"
+  template = "ip$${ip4}.ip-$${ip1}-$${ip2}-$${ip3}.$${domain}"
+
+  vars {
+    ip1    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 0)}"
+    ip2    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 1)}"
+    ip3    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 2)}"
+    ip4    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 3)}"
+    domain = "${lookup(var.ip_dns_domains, var.region)}"
+  }
 }
 
 resource "openstack_networking_port_v2" "port_consul" {
   count = "${var.count}"
 
-  name               = "${var.name}_consul_port_${count.index}"
+  name = "${var.name}_consul_port_${count.index}"
+
   #  network_id         = "${element(data.openstack_networking_subnet_v2.subnets.*.network_id, count.index)}"
-  network_id         = "${var.network_id}"
-  admin_state_up     = "true"
+  network_id     = "${var.network_id}"
+  admin_state_up = "true"
+
   security_group_ids = [
-    "${compact(concat(list(openstack_networking_secgroup_v2.servers_sg.id),var.security_group_ids))}"
+    "${compact(concat(list(openstack_networking_secgroup_v2.servers_sg.id),var.security_group_ids))}",
   ]
 
   fixed_ip {
     subnet_id = "${data.openstack_networking_subnet_v2.subnets.*.id[count.index]}"
   }
+}
+
+data "template_file" "ipv4_addrs" {
+  count    = "${var.count}"
+  template = "${element(compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", ""))), count.index)}"
 }
 
 resource "openstack_compute_servergroup_v2" "consul" {
@@ -131,7 +158,7 @@ resource "openstack_compute_instance_v2" "public_consul" {
 
   # Important: orders of network declaration matters because public internet interface must be eth1
   network {
-    port           = "${element(openstack_networking_port_v2.public_port_consul.*.id, count.index)}"
+    port = "${element(openstack_networking_port_v2.public_port_consul.*.id, count.index)}"
   }
 
   scheduler_hints {

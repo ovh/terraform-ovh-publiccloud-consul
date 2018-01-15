@@ -50,12 +50,11 @@ module "consul_servers" {
   region                = "${var.region}"
   datacenter            = "${lower(var.region)}"
   network_id            = "${module.network.network_id}"
-  subnet_ids            = ["${module.network.private_subnets[0]}"]
+  subnet_ids            = ["${module.network.public_subnets[0]}"]
   ssh_public_keys       = ["${openstack_compute_keypair_v2.keypair.public_key}"]
   image_name            = "CoreOS Stable"
   ignition_mode         = true
   associate_public_ipv4 = true
-  public_network_id     = "${lookup(var.public_network_ids, var.region)}"
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
@@ -63,7 +62,7 @@ module "consul_servers" {
 
   ssh_user                = "core"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 
@@ -118,7 +117,7 @@ module "provision_consul" {
   ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 }
@@ -130,7 +129,7 @@ module "provision_dnsmasq" {
   ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 }

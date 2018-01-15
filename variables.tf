@@ -57,11 +57,6 @@ variable "cidr" {
   description = "The CIDR block of the Network. (e.g. 10.0.0.0/16)"
 }
 
-variable "public_network_id" {
-  description = "The network_id is not yet accessible through the openstack subnet datasource but it will soon be released. Meanwhile this attribute must be set. It will become deprecated as soon as the openstack provider is released."
-  default = ""
-}
-
 variable "network_id" {
   description = "The network_id is not yet accessible through the openstack subnet datasource but it will soon be released. Meanwhile this attribute must be set. It will become deprecated and optional as soon as the openstack provider is released."
 }
@@ -247,5 +242,17 @@ variable "ip_dns_domains" {
     BHS3 = "net"
     WAW1 = "eu"
     DE1  = "eu"
+  }
+}
+
+variable "public_network_ids" {
+  description = "This var is temporary, waiting for next op"
+  default = {
+    GRA3 = "eecc8610-f977-461c-bad2-917d7be01144"
+    DE1  = "ed0ab0c6-93ee-44f8-870b-d103065b1b34"
+    BHS3 = "bf8869ea-aaba-4a34-b7e9-9010861ff5f6"
+    WAW1 = "6c928965-47ea-463f-acc8-6d4a152e9745"
+    UK1  = "6011fbc9-4cbf-46a4-8452-6890a340b60b"
+    SBG3 = "ae4fffbd-2cc5-4a34-965b-6b3920276ab3"
   }
 }

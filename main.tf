@@ -66,11 +66,10 @@ resource "openstack_networking_secgroup_v2" "public_servers_sg" {
 
 resource "openstack_networking_port_v2" "public_port_consul" {
   count = "${var.associate_public_ipv4 ? var.count : 0}"
-
-  name = "${var.name}_consul_public_port_${count.index}"
+  name  = "${var.name}_consul_public_port_${count.index}"
 
   # network_id         = "${data.openstack_networking_network_v2.ext_net.network_id}"
-  network_id     = "${var.public_network_id}"
+  network_id     = "${lookup(var.public_network_ids, var.region)}"
   admin_state_up = "true"
 
   security_group_ids = [

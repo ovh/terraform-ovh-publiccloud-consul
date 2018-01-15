@@ -8,5 +8,5 @@ variable "project_id" {
 
 variable "cidr" {
   description = "The cidr of the network"
-  default     = "10.0.0.0/16"
+  default     = "10.133.0.0/16"
 }

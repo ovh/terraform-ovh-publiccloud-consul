@@ -195,7 +195,7 @@ resource "openstack_compute_instance_v2" "consul" {
 
 module "post_install_consul" {
   source                  = "./modules/install-consul"
-  count                   = "${var.post_install_module ? var.count : 0}"
+  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -207,7 +207,7 @@ module "post_install_consul" {
 
 module "post_install_dnsmasq" {
   source                  = "./modules/install-dnsmasq"
-  count                   = "${var.post_install_module ? var.count : 0}"
+  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -219,7 +219,7 @@ module "post_install_dnsmasq" {
 
 module "post_install_fabio" {
   source                  = "./modules/install-fabio"
-  count                   = "${var.post_install_module ? var.count : 0}"
+  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -227,4 +227,27 @@ module "post_install_fabio" {
   ssh_bastion_host        = "${var.ssh_bastion_host}"
   ssh_bastion_user        = "${var.ssh_bastion_user}"
   ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
+}
+
+
+resource "null_resource" "post_provisionning" {
+  count                   = "${length(var.provision_remote_exec) > 0 ? var.count : 0}"
+
+  triggers {
+    nodeid = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
+    inline = "${md5(join("", var.provision_remote_exec))}"
+  }
+
+  connection {
+    host                = "${element(coalescelist(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4), count.index)}"
+    user                = "${var.ssh_user}"
+    private_key         = "${var.ssh_private_key}"
+    bastion_host        = "${var.ssh_bastion_host}"
+    bastion_user        = "${var.ssh_bastion_user}"
+    bastion_private_key = "${var.ssh_bastion_private_key}"
+  }
+
+  provisioner "remote-exec" {
+    inline = [ "${var.provision_remote_exec}" ]
+  }
 }

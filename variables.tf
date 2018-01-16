@@ -172,9 +172,20 @@ variable "metadata" {
   default     = {}
 }
 
-variable "post_install_module" {
+variable "post_install_modules" {
   description = "Setting this variable to true will assume the necessary software to boot the cluster hasn't packaged in the image and thus will be post provisionned. Defaults to `false`"
   default     = false
+}
+
+variable "post_install_module" {
+  description = "Deprecated, use `post_install_modules` instead"
+  default     = false
+}
+
+variable "provision_remote_exec" {
+  type        = "list"
+  description = "List of inline remote commands to execute on post provisionning phase"
+  default     = []
 }
 
 variable "ssh_user" {
@@ -234,6 +245,7 @@ variable "associate_public_ipv4" {
 
 variable "ip_dns_domains" {
   description = "Every public ipv4 addr at OVH is registered as a A record in DNS zones according to the format ip 1.2.3.4 > ip4.ip-q1-2-3.eu for EU regions or  ip4.ip-1-2-3.net for other ones. This variables maps the domain name to use according to the region."
+
   default = {
     GRA1 = "eu"
     SBG3 = "eu"
@@ -247,6 +259,7 @@ variable "ip_dns_domains" {
 
 variable "public_network_ids" {
   description = "This var is temporary, waiting for next op"
+
   default = {
     GRA3 = "eecc8610-f977-461c-bad2-917d7be01144"
     DE1  = "ed0ab0c6-93ee-44f8-870b-d103065b1b34"

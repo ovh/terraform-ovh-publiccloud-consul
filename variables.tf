@@ -20,6 +20,7 @@ variable "image_names" {
     BHS3 = "CentOS 7 Consul"
     WAW1 = "CentOS 7 Consul"
     DE1  = "CentOS 7 Consul"
+    UK1  = "CentOS 7 Consul"
   }
 }
 
@@ -36,6 +37,7 @@ variable "flavor_names" {
     BHS3 = "s1-4"
     WAW1 = "s1-4"
     DE1  = "s1-4"
+    UK1  = "s1-4"
   }
 }
 
@@ -254,6 +256,7 @@ variable "ip_dns_domains" {
     BHS3 = "net"
     WAW1 = "eu"
     DE1  = "eu"
+    UK1  = "eu"
   }
 }
 

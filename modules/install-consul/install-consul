@@ -65,8 +65,8 @@ function setup_systemd_services {
     local readonly username="$1"
     sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/consul.service"
     sudo cp "$SCRIPT_DIR/consul.path" "/etc/systemd/system/consul.path"
-    sudo sed -ie s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
-    sudo sed -ie "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
+    sudo sed -i -e s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
+    sudo sed -i -e "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
     sudo systemctl enable consul.path
 
     # disable firewalld. TODO: make a proper setup for consul
@@ -146,7 +146,7 @@ function install_binaries {
   sudo cp "$SCRIPT_DIR/consul-manage" "$bin_dir/"
   sudo cp "$SCRIPT_DIR/functions.sh" "$bin_dir/"
   sudo cp "$SCRIPT_DIR/defaults.conf" "$bin_dir/"
-  sudo sed -ie "s,/opt/consul,$path,g" "$bin_dir/defaults.conf"
+  sudo sed -i -e "s,/opt/consul,$path,g" "$bin_dir/defaults.conf"
   sudo chown -R "$username:$username" "$path"
   sudo chmod a+x "$bin_dir/consul-manage"
 }

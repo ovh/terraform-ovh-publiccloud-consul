@@ -60,7 +60,7 @@ function assert_not_empty {
 # Install steps are based on: http://stackoverflow.com/a/31576473/483528
 function setup_systemd_services {
     sudo cp "$SCRIPT_DIR/fabio@.service" "/etc/systemd/system/fabio@.service"
-    sudo sed -ie "s,/opt/fabio,$path,g" "/etc/systemd/system/fabio@.service"
+    sudo sed -i -e "s,/opt/fabio,$path,g" "/etc/systemd/system/fabio@.service"
 
     # disable firewalld. TODO: make a proper setup for fabio
     if systemctl list-unit-files --all | grep -q firewalld.service; then

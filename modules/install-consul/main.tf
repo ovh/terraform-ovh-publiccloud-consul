@@ -14,7 +14,6 @@ resource "null_resource" "post_install_consul" {
     bastion_private_key = "${var.ssh_bastion_private_key}"
   }
 
-
   provisioner "remote-exec" {
     inline = [ "mkdir -p /tmp/install-consul" ]
   }
@@ -27,8 +26,7 @@ resource "null_resource" "post_install_consul" {
   provisioner "remote-exec" {
     inline = [
       "/bin/sh -x /tmp/install-consul/install-consul --version ${var.consul_version} --sha256sum ${var.consul_sha256sum}",
-      "sudo systemctl restart consul",
+      "sudo systemctl restart consul.path",
     ]
   }
-
 }

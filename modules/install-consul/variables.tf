@@ -39,10 +39,10 @@ variable "ssh_bastion_private_key" {
 
 variable "consul_version" {
   description = "The version of consul to install with the post installation script if `post_install_module` is set to true"
-  default     = "1.0.1"
+  default     = "1.0.2"
 }
 
 variable "consul_sha256sum" {
   description = "The sha256 checksum of the consul binary to install with the post installation script if `post_install_module` is set to true"
-  default     = "eac5755a1d19e4b93f6ce30caaf7b3bd8add4557b143890b1c07f5614a667a68"
+  default     = "418329f0f4fc3f18ef08674537b576e57df3f3026f258794b4b4b611beae6c9b"
 }

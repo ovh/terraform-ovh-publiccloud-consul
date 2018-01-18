@@ -250,4 +250,6 @@ resource "null_resource" "post_provisionning" {
   provisioner "remote-exec" {
     inline = [ "${var.provision_remote_exec}" ]
   }
+
+  depends_on = [ "module.post_install_consul", "module.post_install_dnsmasq", "module.post_install_fabio"]
 }

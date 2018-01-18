@@ -30,3 +30,7 @@ resource "null_resource" "post_install_consul" {
     ]
   }
 }
+
+output "install_ids" {
+  value = ["${null_resource.post_install_consul.*.id}"]
+}

@@ -32,3 +32,7 @@ resource "null_resource" "post_install_dnsmasq" {
   }
 
 }
+
+output "install_ids" {
+  value = ["${null_resource.post_install_dnsmasq.*.id}"]
+}

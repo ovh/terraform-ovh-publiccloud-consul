@@ -82,19 +82,6 @@ data "template_file" "public_ipv4_addrs" {
   template = "${element(compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.public_port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", ""))), count.index)}"
 }
 
-data "template_file" "public_ipv4_dns" {
-  count    = "${var.associate_public_ipv4 ? var.count : 0}"
-  template = "ip$${ip4}.ip-$${ip1}-$${ip2}-$${ip3}.$${domain}"
-
-  vars {
-    ip1    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 0)}"
-    ip2    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 1)}"
-    ip3    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 2)}"
-    ip4    = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 3)}"
-    domain = "${lookup(var.ip_dns_domains, var.region)}"
-  }
-}
-
 resource "openstack_networking_port_v2" "port_consul" {
   count = "${var.count}"
 
@@ -111,11 +98,6 @@ resource "openstack_networking_port_v2" "port_consul" {
   fixed_ip {
     subnet_id = "${data.openstack_networking_subnet_v2.subnets.*.id[count.index]}"
   }
-}
-
-data "template_file" "ipv4_addrs" {
-  count    = "${var.count}"
-  template = "${element(compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", ""))), count.index)}"
 }
 
 resource "openstack_compute_servergroup_v2" "consul" {
@@ -229,13 +211,15 @@ module "post_install_fabio" {
   ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
 }
 
-
 resource "null_resource" "post_provisionning" {
-  count                   = "${length(var.provision_remote_exec) > 0 ? var.count : 0}"
+  count = "${length(var.provision_remote_exec) > 0 ? var.count : 0}"
 
   triggers {
-    nodeid = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
-    inline = "${md5(join("", var.provision_remote_exec))}"
+    nodeid             = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
+    inline             = "${md5(join("", var.provision_remote_exec))}"
+    install_consul_id  = "${var.post_install_module || var.post_install_modules ? element(module.post_install_consul.install_ids, count.index) : ""}"
+    install_fabio_id   = "${var.post_install_module || var.post_install_modules ? element(module.post_install_fabio.install_ids, count.index) : ""}"
+    install_dnsmasq_id = "${var.post_install_module || var.post_install_modules ? element(module.post_install_dnsmasq.install_ids, count.index) : ""}"
   }
 
   connection {
@@ -248,8 +232,44 @@ resource "null_resource" "post_provisionning" {
   }
 
   provisioner "remote-exec" {
-    inline = [ "${var.provision_remote_exec}" ]
+    inline = ["${var.provision_remote_exec}"]
   }
+}
 
-  depends_on = [ "module.post_install_consul", "module.post_install_dnsmasq", "module.post_install_fabio"]
+# This is somekind of a hack to ensure that when consul ids is output and made
+# available to other resources outside the module, the node has been fully provisionned
+data "template_file" "consul_instances_ids" {
+  count    = "${var.count}"
+  template = "$${consul_id}"
+
+  vars {
+    consul_id          = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
+    install_consul_id  = "${element(coalescelist(module.post_install_consul.install_ids, list("")), count.index)}"
+    install_fabio_id  = "${element(coalescelist(module.post_install_fabio.install_ids, list("")), count.index)}"
+    install_dnsmasq_id  = "${element(coalescelist(module.post_install_dnsmasq.install_ids, list("")), count.index)}"
+    post_provision_id  = "${element(coalescelist(null_resource.post_provisionning.*.id, list("")), count.index)}"
+  }
+}
+
+data "template_file" "ipv4_addrs" {
+  count    = "${var.count}"
+  template = "${element(compact(split(",", replace(join(",", flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips)), "/[[:alnum:]]+:[^,]+/", ""))), count.index)}"
+
+  vars {
+    consul_id = "${element(data.template_file.consul_instances_ids.*.rendered, count.index)}"
+  }
+}
+
+data "template_file" "public_ipv4_dns" {
+  count    = "${var.associate_public_ipv4 ? var.count : 0}"
+  template = "ip$${ip4}.ip-$${ip1}-$${ip2}-$${ip3}.$${domain}"
+
+  vars {
+    consul_id = "${element(data.template_file.consul_instances_ids.*.rendered, count.index)}"
+    ip1       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 0)}"
+    ip2       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 1)}"
+    ip3       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 2)}"
+    ip4       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 3)}"
+    domain    = "${lookup(var.ip_dns_domains, var.region)}"
+  }
 }

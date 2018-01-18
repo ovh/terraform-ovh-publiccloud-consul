@@ -7,7 +7,7 @@ output "public_security_group_id" {
 }
 
 output "instance_ids" {
-  value = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
+  value = ["${data.template_file.consul_instances_ids.*.rendered}"]
 }
 
 output "ipv4_addrs" {

@@ -1,4 +1,4 @@
-resource "null_resource" "post_install_module" {
+resource "null_resource" "post_install_fabio" {
   count = "${var.count}"
 
   triggers {
@@ -28,5 +28,8 @@ resource "null_resource" "post_install_module" {
       "/bin/sh -x /tmp/install-fabio/install-fabio --version ${var.fabio_version} --sha256sum ${var.fabio_sha256sum}"
     ]
   }
+}
 
+output "install_ids" {
+  value = ["${null_resource.post_install_fabio.*.id}"]
 }

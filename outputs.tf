@@ -19,5 +19,5 @@ output "public_ipv4_addrs" {
 }
 
 output "public_ipv4_dns" {
-  value = ["${data.template_file.public_ipv4_addrs.*.rendered}"]
+  value = ["${data.template_file.public_ipv4_dns.*.rendered}"]
 }

@@ -144,10 +144,10 @@ module "userdata" {
 
 resource "openstack_compute_instance_v2" "public_consul" {
   count    = "${var.associate_public_ipv4 ? var.count : 0}"
-  name     = "${var.name}_consul_${var.agent_mode}_${count.index}"
+  name     = "${var.name}_${count.index}"
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
-  flavor_name = "${lookup(var.flavor_names, var.region)}"
+  flavor_name = "${var.flavor_name != "" ? var.flavor_name : lookup(var.flavor_names, var.region)}"
   user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
 
   network {
@@ -167,15 +167,15 @@ resource "openstack_compute_instance_v2" "public_consul" {
   # The Openstack Instances will use these tags to automatically discover each other and form a cluster.
   # Note: As of today, this feature isn't used because it would require to give credentials to every instances with full access to the openstack API.
   # the first version of this module will bootstrap a first node that will be used as a "join ip"
-  metadata = "${merge(map(var.cluster_tag_key, var.cluster_tag_value), var.metadata)}"
+  metadata = "${merge(map(var.cluster_tag_key, var.cluster_tag_value, "consul_mode", var.agent_mode), var.metadata)}"
 }
 
 resource "openstack_compute_instance_v2" "consul" {
   count    = "${var.associate_public_ipv4 ? 0 : var.count}"
-  name     = "${var.name}_consul_${var.agent_mode}_${count.index}"
+  name     = "${var.name}_${count.index}"
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
-  flavor_name = "${lookup(var.flavor_names, var.region)}"
+  flavor_name = "${var.flavor_name != "" ? var.flavor_name : lookup(var.flavor_names, var.region)}"
   user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
 
   network {
@@ -190,7 +190,7 @@ resource "openstack_compute_instance_v2" "consul" {
   # The Openstack Instances will use these tags to automatically discover each other and form a cluster.
   # Note: As of today, this feature isn't used because it would require to give credentials to every instances with full access to the openstack API.
   # the first version of this module will bootstrap a first node that will be used as a "join ip"
-  metadata = "${merge(map(var.cluster_tag_key, var.cluster_tag_value), var.metadata)}"
+  metadata = "${merge(map(var.cluster_tag_key, var.cluster_tag_value, "consul_mode", var.agent_mode), var.metadata)}"
 }
 
 module "post_install_consul" {

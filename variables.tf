@@ -24,10 +24,15 @@ variable "image_names" {
   }
 }
 
+variable "flavor_name" {
+  description = "The flavor name that will be used for consul nodes."
+  default = ""
+}
+
 variable "flavor_names" {
   type = "map"
 
-  description = "A map of flavor names per openstack region that will be used for consul servers."
+  description = "A map of flavor names per openstack region that will be used for consul nodes."
 
   default = {
     GRA1 = "s1-4"

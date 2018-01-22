@@ -5,45 +5,12 @@ variable "image_id" {
 
 variable "image_name" {
   description = "The name of the glance image to run in the cluster. If `post_install_module` is set to `false`, this should be an image built from the Packer template under examples/consul-glance-image/consul.json. If the default value is used, Terraform will look up the latest image build automatically."
-  default     = ""
-}
-
-variable "image_names" {
-  type        = "map"
-  description = "The name per region of the consul glance image. This variable can be overriden by the \"image_id\" variable"
-
-  default = {
-    GRA1 = "CentOS 7 Consul"
-    SBG3 = "CentOS 7 Consul"
-    GRA3 = "CentOS 7 Consul"
-    SBG3 = "CentOS 7 Consul"
-    BHS3 = "CentOS 7 Consul"
-    WAW1 = "CentOS 7 Consul"
-    DE1  = "CentOS 7 Consul"
-    UK1  = "CentOS 7 Consul"
-  }
+  default     = "CoreOS Stable"
 }
 
 variable "flavor_name" {
   description = "The flavor name that will be used for consul nodes."
-  default = ""
-}
-
-variable "flavor_names" {
-  type = "map"
-
-  description = "A map of flavor names per openstack region that will be used for consul nodes."
-
-  default = {
-    GRA1 = "s1-4"
-    SBG3 = "s1-4"
-    GRA3 = "s1-4"
-    SBG3 = "s1-4"
-    BHS3 = "s1-4"
-    WAW1 = "s1-4"
-    DE1  = "s1-4"
-    UK1  = "s1-4"
-  }
+  default     = "s1-4"
 }
 
 variable "region" {
@@ -52,7 +19,6 @@ variable "region" {
 
 variable "name" {
   description = "What to name the Consul cluster and all of its associated resources."
-  default     = "mycluster"
 }
 
 variable "count" {
@@ -64,9 +30,6 @@ variable "cidr" {
   description = "The CIDR block of the Network. (e.g. 10.0.0.0/16)"
 }
 
-variable "network_id" {
-  description = "The network_id is not yet accessible through the openstack subnet datasource but it will soon be released. Meanwhile this attribute must be set. It will become deprecated and optional as soon as the openstack provider is released."
-}
 
 variable "subnet_ids" {
   type = "list"
@@ -181,12 +144,12 @@ variable "metadata" {
 
 variable "post_install_modules" {
   description = "Setting this variable to true will assume the necessary software to boot the cluster hasn't packaged in the image and thus will be post provisionned. Defaults to `false`"
-  default     = false
+  default     = true
 }
 
 variable "post_install_module" {
   description = "Deprecated, use `post_install_modules` instead"
-  default     = false
+  default     = true
 }
 
 variable "provision_remote_exec" {
@@ -221,18 +184,18 @@ variable "ssh_bastion_private_key" {
 }
 
 variable "ignition_mode" {
-  description = "Set to true if os family supports ignition, such as CoreOS distribution"
-  default     = false
+  description = "Set to true if os family supports ignition, such as CoreOS/Container Linux distribution"
+  default     = true
 }
 
 variable "consul_version" {
   description = "The version of consul to install with the post installation script if `post_install_module` is set to true"
-  default     = "1.0.1"
+  default     = "1.0.2"
 }
 
 variable "consul_sha256sum" {
   description = "The sha256 checksum of the consul binary to install with the post installation script if `post_install_module` is set to true"
-  default     = "eac5755a1d19e4b93f6ce30caaf7b3bd8add4557b143890b1c07f5614a667a68"
+  default     = "418329f0f4fc3f18ef08674537b576e57df3f3026f258794b4b4b611beae6c9b"
 }
 
 variable "fabio_version" {
@@ -265,15 +228,7 @@ variable "ip_dns_domains" {
   }
 }
 
-variable "public_network_ids" {
-  description = "This var is temporary, waiting for next op"
-
-  default = {
-    GRA3 = "eecc8610-f977-461c-bad2-917d7be01144"
-    DE1  = "ed0ab0c6-93ee-44f8-870b-d103065b1b34"
-    BHS3 = "bf8869ea-aaba-4a34-b7e9-9010861ff5f6"
-    WAW1 = "6c928965-47ea-463f-acc8-6d4a152e9745"
-    UK1  = "6011fbc9-4cbf-46a4-8452-6890a340b60b"
-    SBG3 = "ae4fffbd-2cc5-4a34-965b-6b3920276ab3"
-  }
+variable "default_ip_dns_domains" {
+  description = "Default value for `ip_dns_domains`"
+  default     = "net"
 }

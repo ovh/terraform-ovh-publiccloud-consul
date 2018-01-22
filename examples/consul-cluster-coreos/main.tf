@@ -4,7 +4,7 @@ provider "ovh" {
 }
 
 provider "openstack" {
-  version = "~> 1.0"
+  version = "~> 1.2"
   region = "${var.region}"
 }
 
@@ -16,7 +16,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.15"
+  version = ">= 0.0.19"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -49,17 +49,12 @@ module "consul_servers" {
   cidr                  = "${var.cidr}"
   region                = "${var.region}"
   datacenter            = "${lower(var.region)}"
-  network_id            = "${module.network.network_id}"
   subnet_ids            = ["${module.network.public_subnets[0]}"]
   ssh_public_keys       = ["${openstack_compute_keypair_v2.keypair.public_key}"]
-  image_name            = "CoreOS Stable"
-  ignition_mode         = true
   associate_public_ipv4 = true
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
-  post_install_module = true
-
   ssh_user                = "core"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
   ssh_bastion_host        = "${module.network.bastion_public_ip}"

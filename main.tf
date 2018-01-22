@@ -16,7 +16,7 @@ terraform {
 # NOTE: This Terraform data source must return at least one Image result or the entire template will fail.
 data "openstack_images_image_v2" "consul" {
   count       = "${var.image_id == "" ? 1 : 0}"
-  name        = "${var.image_name != "" ? var.image_name : lookup(var.image_names, var.region)}"
+  name        = "${var.image_name}"
   most_recent = true
 }
 
@@ -68,8 +68,7 @@ resource "openstack_networking_port_v2" "public_port_consul" {
   count = "${var.associate_public_ipv4 ? var.count : 0}"
   name  = "${var.name}_consul_public_port_${count.index}"
 
-  # network_id         = "${data.openstack_networking_network_v2.ext_net.network_id}"
-  network_id     = "${lookup(var.public_network_ids, var.region)}"
+  network_id     = "${data.openstack_networking_network_v2.ext_net.id}"
   admin_state_up = "true"
 
   security_group_ids = [
@@ -85,10 +84,8 @@ data "template_file" "public_ipv4_addrs" {
 resource "openstack_networking_port_v2" "port_consul" {
   count = "${var.count}"
 
-  name = "${var.name}_consul_port_${count.index}"
-
-  #  network_id         = "${element(data.openstack_networking_subnet_v2.subnets.*.network_id, count.index)}"
-  network_id     = "${var.network_id}"
+  name           = "${var.name}_consul_port_${count.index}"
+  network_id     = "${element(data.openstack_networking_subnet_v2.subnets.*.network_id, count.index)}"
   admin_state_up = "true"
 
   security_group_ids = [
@@ -129,7 +126,7 @@ resource "openstack_compute_instance_v2" "public_consul" {
   name     = "${var.name}_${count.index}"
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
-  flavor_name = "${var.flavor_name != "" ? var.flavor_name : lookup(var.flavor_names, var.region)}"
+  flavor_name = "${var.flavor_name}"
   user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
 
   network {
@@ -157,7 +154,7 @@ resource "openstack_compute_instance_v2" "consul" {
   name     = "${var.name}_${count.index}"
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
-  flavor_name = "${var.flavor_name != "" ? var.flavor_name : lookup(var.flavor_names, var.region)}"
+  flavor_name = "${var.flavor_name}"
   user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
 
   network {
@@ -245,8 +242,8 @@ data "template_file" "consul_instances_ids" {
   vars {
     consul_id          = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
     install_consul_id  = "${element(coalescelist(module.post_install_consul.install_ids, list("")), count.index)}"
-    install_fabio_id  = "${element(coalescelist(module.post_install_fabio.install_ids, list("")), count.index)}"
-    install_dnsmasq_id  = "${element(coalescelist(module.post_install_dnsmasq.install_ids, list("")), count.index)}"
+    install_fabio_id   = "${element(coalescelist(module.post_install_fabio.install_ids, list("")), count.index)}"
+    install_dnsmasq_id = "${element(coalescelist(module.post_install_dnsmasq.install_ids, list("")), count.index)}"
     post_provision_id  = "${element(coalescelist(null_resource.post_provisionning.*.id, list("")), count.index)}"
   }
 }
@@ -270,6 +267,6 @@ data "template_file" "public_ipv4_dns" {
     ip2       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 1)}"
     ip3       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 2)}"
     ip4       = "${element(split(".", element(data.template_file.public_ipv4_addrs.*.rendered, count.index)), 3)}"
-    domain    = "${lookup(var.ip_dns_domains, var.region)}"
+    domain    = "${lookup(var.ip_dns_domains, var.region, var.default_ip_dns_domains)}"
   }
 }

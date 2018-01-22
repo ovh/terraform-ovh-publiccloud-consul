@@ -4,7 +4,7 @@ provider "ovh" {
 }
 
 provider "openstack" {
-  version = "~> 1.0"
+  version = "~> 1.2"
   region = "${var.region}"
 }
 
@@ -16,7 +16,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.18"
+  version = ">= 0.0.19"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -36,7 +36,6 @@ module "network" {
     Terraform   = "true"
     Environment = "Consul"
   }
-
 }
 
 module "consul_servers" {
@@ -49,7 +48,6 @@ module "consul_servers" {
   cidr            = "${var.cidr}"
   region          = "${var.region}"
   datacenter      = "${lower(var.region)}"
-  network_id      = "${module.network.network_id}"
   subnet_ids      = ["${module.network.private_subnets[0]}"]
   ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
 
@@ -57,10 +55,10 @@ module "consul_servers" {
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
-  post_install_module     = true
+  ignition_mode           = false
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 
@@ -72,7 +70,6 @@ module "consul_servers" {
     Terraform   = "true"
     Environment = "Consul"
   }
-
 }
 
 resource "openstack_networking_port_v2" "port_private_instance" {
@@ -115,7 +112,7 @@ module "provision_consul" {
   ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 }
@@ -127,7 +124,7 @@ module "provision_dnsmasq" {
   ipv4_addrs              = ["${openstack_compute_instance_v2.my_private_instance.access_ip_v4}"]
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
-  ssh_bastion_host        = "${module.network.nat_public_ips[0]}"
+  ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
   ssh_bastion_private_key = "${file("~/.ssh/id_rsa")}"
 }

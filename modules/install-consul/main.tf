@@ -15,7 +15,7 @@ resource "null_resource" "post_install_consul" {
   }
 
   provisioner "remote-exec" {
-    inline = [ "mkdir -p /tmp/install-consul" ]
+    inline = ["mkdir -p /tmp/install-consul"]
   }
 
   provisioner "file" {
@@ -25,7 +25,7 @@ resource "null_resource" "post_install_consul" {
 
   provisioner "remote-exec" {
     inline = [
-      "/bin/sh -x /tmp/install-consul/install-consul --version ${var.consul_version} --sha256sum ${var.consul_sha256sum}",
+      "/bin/sh -x /tmp/install-consul/install-consul --path ${var.install_dir} --version ${var.consul_version} --sha256sum ${var.consul_sha256sum}",
       "sudo systemctl restart consul.path",
     ]
   }

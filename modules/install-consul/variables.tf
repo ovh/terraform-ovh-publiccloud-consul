@@ -18,6 +18,11 @@ variable "ssh_user" {
   default     = "core"
 }
 
+variable "install_dir" {
+  description = "Directory where to install consul"
+  default     = "/opt/consul"
+}
+
 variable "ssh_private_key" {
   description = "The ssh private key used to post provision the consul cluster. This is required if `post_install_module` is set to `true`. It must be set accordingly to `ssh_key_pair"
 }

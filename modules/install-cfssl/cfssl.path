@@ -1,0 +1,5 @@
+[Path]
+PathExists=/etc/sysconfig/cfssl.conf
+
+[Install]
+WantedBy=multi-user.target

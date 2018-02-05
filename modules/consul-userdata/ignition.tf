@@ -24,6 +24,29 @@ data "ignition_file" "cacert" {
   }
 }
 
+data "ignition_file" "cfssl-cacert" {
+  count      = "${var.cacert != "" && var.cacert_key != "" ? 1 : 0}"
+  filesystem = "root"
+  path       = "/opt/cfssl/cacert/ca.pem"
+  mode       = "0644"
+
+  content {
+    content = "${var.cacert}"
+  }
+}
+
+data "ignition_file" "cfssl-cakey" {
+  count      = "${var.cacert != "" && var.cacert_key != "" ? 1 : 0}"
+  filesystem = "root"
+  path       = "/opt/cfssl/cacert/ca-key.pem"
+  mode       = "0600"
+  uid        = "1011"
+
+  content {
+    content = "${var.cacert_key}"
+  }
+}
+
 data "ignition_file" "consul-conf" {
   filesystem = "root"
   mode       = "0644"
@@ -39,6 +62,32 @@ PRIVATE_NETWORK=${var.cidr_blocks[0]}
 JOIN_IPV4_ADDR=${join(",", var.join_ipv4_addr)}
 JOIN_IPV4_ADDR_WAN=${join(",", var.join_ipv4_addr_wan)}
 CONSUL_AGENT_TAGS=${join(",", var.agent_tags)}
+CONTENT
+  }
+}
+
+data "ignition_file" "cfssl-conf" {
+  count      = "${var.cfssl ? 1 : 0}"
+  filesystem = "root"
+  mode       = "0644"
+  path       = "/etc/sysconfig/cfssl.conf"
+
+  content {
+    content = <<CONTENT
+CFSSL_MODE=server
+CA_VALIDITY_PERIOD=${var.cfssl_ca_validity_period}
+CERT_VALIDITY_PERIOD=${var.cfssl_cert_validity_period}
+CN=${var.cfssl_cn == "" ? var.domain : var.cfssl_cn}
+C=${var.cfssl_c == "" ? var.datacenter : var.cfssl_c}
+L=${var.cfssl_l}
+O=${var.cfssl_o}
+OU=${var.cfssl_ou}
+ST=${var.cfssl_st}
+KEY_ALGO=${var.cfssl_key_algo}
+KEY_SIZE=${var.cfssl_key_size}
+CFSSL_HOSTNAMES=cfssl.service.${var.domain},cfssl.service.${var.datacenter}.${var.domain},127.0.0.1,localhost
+CFSSL_BIND=${var.cfssl_bind}
+CFSSL_PORT=${var.cfssl_port}
 CONTENT
   }
 }
@@ -77,21 +126,6 @@ data "ignition_systemd_unit" "additional-units" {
   content = "${var.additional_unitcontents[count.index]}"
 }
 
-data "ignition_systemd_unit" "update-ca-cert" {
-  name    = "update-ca-cert.service"
-  enabled = true
-
-  content = <<CONTENT
-[Unit]
-Description=Update cacert
-[Service]
-Type=oneshot
-RemainAfterExit=true
-ExecStart=/usr/sbin/update-ca-certificates
-[Install]
-WantedBy=network.target
-CONTENT
-}
 
 data "ignition_user" "core" {
   name                = "core"
@@ -102,7 +136,6 @@ data "ignition_config" "coreos" {
   users = ["${data.ignition_user.core.id}"]
 
   systemd = [
-    "${data.ignition_systemd_unit.update-ca-cert.id}",
     "${data.ignition_systemd_unit.additional-units.*.id}",
   ]
 
@@ -114,6 +147,9 @@ data "ignition_config" "coreos" {
   files = [
     "${data.ignition_file.additional-files.*.id}",
     "${data.ignition_file.cacert.*.id}",
+    "${data.ignition_file.cfssl-cacert.*.id}",
+    "${data.ignition_file.cfssl-cakey.*.id}",
     "${data.ignition_file.consul-conf.id}",
+    "${data.ignition_file.cfssl-conf.*.id}",
   ]
 }

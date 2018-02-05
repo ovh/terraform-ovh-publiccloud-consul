@@ -1,0 +1,13 @@
+[Unit]
+Description=Cfssl Watcher for consul
+PartOf=consul.service
+After=consul.service
+Requires=consul.service
+Wants=cfssl.service consul-restart.path
+
+[Service]
+User=consul
+Restart=on-failure
+RestartSec=10s
+
+ExecStart=/opt/consul/bin/watch-cfssl.sh watch

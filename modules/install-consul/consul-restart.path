@@ -1,5 +1,5 @@
 [Path]
-PathExists=/etc/sysconfig/consul.conf
+PathChanged=/opt/consul/certs
 
 [Install]
 WantedBy=multi-user.target

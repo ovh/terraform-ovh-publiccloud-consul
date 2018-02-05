@@ -63,11 +63,23 @@ function assert_not_empty {
 # Install steps are based on: http://stackoverflow.com/a/31576473/483528
 function setup_systemd_services {
     local readonly username="$1"
-    sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/consul.service"
-    sudo cp "$SCRIPT_DIR/consul.path" "/etc/systemd/system/consul.path"
+    sudo cp "$SCRIPT_DIR/update-ca-cert.service" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/update-ca-cert.path" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul.service" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul.path" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul-restart.service" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul-restart.path" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul-watch-cfssl.service" "/etc/systemd/system/"
+    sudo cp "$SCRIPT_DIR/consul-watch-cacerts.service" "/etc/systemd/system/"
+
     sudo sed -i -e s/User=consul/User=$username/g "/etc/systemd/system/consul.service"
     sudo sed -i -e "s,/opt/consul,$path,g" "/etc/systemd/system/consul.service"
-    sudo systemctl enable consul.path
+    sudo sed -i -e s/User=consul/User=$username/g "/etc/systemd/system/consul-watch-cfssl.service"
+    sudo sed -i -e s/User=consul/User=$username/g "/etc/systemd/system/consul-watch-cacerts.service"
+    sudo sed -i -e "s,/opt/consul,$path,g" "/etc/systemd/system/consul-watch-cfssl.service"
+    sudo sed -i -e "s,/opt/consul,$path,g" "/etc/systemd/system/consul-watch-cacerts.service"
+
+    sudo systemctl enable consul.path consul-watch-cfssl.service update-ca-cert.path consul-restart.path
 
     # disable firewalld. TODO: make a proper setup for consul
     if systemctl list-unit-files --all | grep -q firewalld.service; then
@@ -130,25 +142,27 @@ function install_binaries {
 
   log_info "Downloading Consul $version from $url to $download_path"
   curl -o "$download_path" "$url"
-   if [ "$sha256sum" != "$(sha256sum "$download_path" | awk '{print $1}')" ]; then
-       log_error "dl binary checksum error $sha256sum != $(sha256sum "$download_path" | awk '{print $1}')"
-       exit 1
+  if [ "$sha256sum" != "$(sha256sum "$download_path" | awk '{print $1}')" ]; then
+      log_error "dl binary checksum error $sha256sum != $(sha256sum "$download_path" | awk '{print $1}')"
+      exit 1
+  else
+      unzip -d /tmp "$download_path"
   fi
 
-  unzip -d /tmp "$download_path"
+  log_info "Copying binaires & scripts to $bin_dir/"
+  sudo cp /tmp/consul \
+       "$SCRIPT_DIR/consul-manage" \
+       "$SCRIPT_DIR/watch-cfssl.sh" \
+       "$SCRIPT_DIR/watch-cacerts.sh" \
+       "$SCRIPT_DIR/functions.sh" \
+       "$SCRIPT_DIR/defaults.conf" "$bin_dir/"
 
-  log_info "Moving Consul binary to $bin_dir/"
-  sudo mv "/tmp/consul" "$bin_dir/"
-  sudo chown "$username:$username" "$bin_dir/consul"
-  sudo chmod a+x "$bin_dir/consul"
-
-  log_info "Copying Consul run scripts to $bin_dir/"
-  sudo cp "$SCRIPT_DIR/consul-manage" "$bin_dir/"
-  sudo cp "$SCRIPT_DIR/functions.sh" "$bin_dir/"
-  sudo cp "$SCRIPT_DIR/defaults.conf" "$bin_dir/"
   sudo sed -i -e "s,/opt/consul,$path,g" "$bin_dir/defaults.conf"
   sudo chown -R "$username:$username" "$path"
-  sudo chmod a+x "$bin_dir/consul-manage"
+  sudo chmod a+x "$bin_dir/consul" \
+       "$bin_dir/consul-manage" \
+       "$bin_dir/watch-cfssl.sh" \
+       "$bin_dir/watch-cacerts.sh"
 }
 
 function install {

@@ -1,3 +1,8 @@
+variable "ignition_mode" {
+  description = "Defines if main output is in ignition or cloudinit format"
+  default     = true
+}
+
 variable "agent_mode" {
   description = "The agent mode of the consul nodes. Can be either `server` or `client`"
   default     = "server"
@@ -44,6 +49,11 @@ variable "cacert" {
   default     = ""
 }
 
+variable "cacert_key" {
+  description = "Optional ca certificate to use in conjunction with `cacert` for generating certs with cfssl."
+  default     = ""
+}
+
 variable "domain" {
   description = "The domain of the consul cluster."
   default     = "consul"
@@ -74,4 +84,69 @@ variable "bootstrap_expect" {
 variable "public_facing" {
   description = "Determines if the node is internet public facing, meaning it has an interface with an internet public ipv4. Interface must be eth1 for internet traffic. eth0 is reserved for private traffic."
   default     = false
+}
+
+variable "cfssl" {
+  description = "Defines if cfssl shall be started and used a pki. If no cacert with associated private key is given as argument, cfssl will generate its own self signed ca cert."
+  default     = false
+}
+
+variable "cfssl_ca_validity_period" {
+  description = "validity period for generated CA"
+  default     = "43800h"
+}
+
+variable "cfssl_cert_validity_period" {
+  description = "default validity period for generated certs"
+  default     = "8760h"
+}
+
+variable "cfssl_cn" {
+  description = "generated certs common name field "
+  default     = ""
+}
+
+variable "cfssl_c" {
+  description = "generated certs country field"
+  default     = ""
+}
+
+variable "cfssl_l" {
+  description = "generated certs location field"
+  default     = "Roubaix"
+}
+
+variable "cfssl_o" {
+  description = "generated certs org field"
+  default     = "myorg"
+}
+
+variable "cfssl_ou" {
+  description = "generated certs ou field"
+  default     = "59"
+}
+
+variable "cfssl_st" {
+  description = "generated certs state field"
+  default     = "Nord"
+}
+
+variable "cfssl_key_algo" {
+  description = "generated certs key algo"
+  default     = "rsa"
+}
+
+variable "cfssl_key_size" {
+  description = "generated certs key size"
+  default     = "2048"
+}
+
+variable "cfssl_bind" {
+  description = "cfssl service bind addr"
+  default     = "0.0.0.0"
+}
+
+variable "cfssl_port" {
+  description = "cfssl service bind port"
+  default     = "8888"
 }

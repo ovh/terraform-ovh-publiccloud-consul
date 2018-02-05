@@ -1,0 +1,9 @@
+[Unit]
+Description=Update cacert
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/update-ca-certificates
+
+[Install]
+WantedBy=network.target

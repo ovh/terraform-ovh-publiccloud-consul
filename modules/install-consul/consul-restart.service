@@ -1,0 +1,10 @@
+[Unit]
+Description=consul agent restart
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart consul.service
+
+[Install]
+WantedBy=multi-user.target
+

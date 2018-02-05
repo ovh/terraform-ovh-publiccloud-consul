@@ -1,0 +1,15 @@
+[Unit]
+Description=registers cfssl service in consul
+Requires=consul.service cfssl.service
+After=consul.service cfssl.service
+
+[Service]
+Restart=on-failure
+RemainAfterExit=true
+RestartSec=10s
+
+ExecStart=/opt/cfssl/bin/cfssl-manage register
+ExecStop=/opt/cfssl/bin/cfssl-manage deregister
+
+[Install]
+WantedBy=multi-user.target

@@ -34,16 +34,18 @@ conf(){
 }
 EOF
 
-    if [ -f "${CONSUL_CERTDIR}/cert.pem" ] && [ -f "${CONSUL_CERTDIR}/cert-key.pem" ]; then
+    if openssl verify -purpose sslserver -CAfile "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem" "${CONSUL_CERTDIR}/cert.pem" \
+            && [ -f "${CONSUL_CERTDIR}/cert-key.pem" ]; then
         cat > "$CONSUL_CONFDIR/tls.json" <<EOF
 {
     "ports": {
       "https": 8503
     },
+    "ca_file": "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem",
     "cert_file": "${CONSUL_CERTDIR}/cert.pem",
     "key_file": "${CONSUL_CERTDIR}/cert-key.pem",
-    "verify_incoming": true,
-    "verify_outgoing": true
+    "verify_incoming": false,
+    "verify_outgoing": false
 }
 EOF
     else
@@ -57,7 +59,7 @@ EOF
 }
 EOF
     else
-        rm -f "${CONSUL_CONFDIR}/encrypt.conf"
+        rm -f "${CONSUL_CONFDIR}/encrypt.json"
     fi
 
     if ! "$CONSUL_BIN" validate "$CONSUL_CONFDIR"; then
@@ -69,8 +71,30 @@ EOF
 function check(){
     consul info > /dev/null 2>&1
 }
+
 function check_cluster(){
     consul operator raft list-peers | grep -q leader
+}
+
+function cfsslcert(){
+    set -e
+    cfsslhost=${CFSSL_HOST:-cfssl.service.${DATACENTER}.${DOMAIN}}
+    mkdir -p "$CONSUL_CERTDIR"
+
+    certs_json=$(curl --connect-timeout 1 --silent --fail \
+                      -d '{ "request": {"hosts":["127.0.0.1", "localhost"], "CN": "'${DOMAIN}'" },  "profile": "server"}'\
+                      https://$cfsslhost:${CFSSL_PORT:-8888}/api/v1/cfssl/newcert 2>/dev/null)
+
+    if  echo "$certs_json" | jq -r '.result.certificate' | openssl verify -purpose sslserver -CAfile "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem" 2>/dev/null; then \
+        # generating files in temp dir before copying it because a watcher on the directory CONSUL_CERTDIR may interrupt the current process
+        certs_dir_temp=$(mktemp -d)
+        echo "$certs_json" | jq -r '.result.certificate' > "${certs_dir_temp}"/cert.pem
+        echo "$certs_json" | jq -r '.result.private_key' > "${certs_dir_temp}"/cert-key.pem
+        mv "${certs_dir_temp}"/cert.pem "${certs_dir_temp}"/cert-key.pem "${CONSUL_CERTDIR}"/ && rmdir "${certs_dir_temp}"
+    else
+        log user.error "error while generating cert. exiting."
+        exit 1
+    fi
 }
 
 # transform an address or list of ipv4
@@ -158,7 +182,7 @@ start() {
     esac
 
     log user.info "Starting agent with opts: ${CONSUL_AGENT_OPTS[*]}"
-    consulbin agent "${CONSUL_AGENT_OPTS[@]}"
+    exec "$CONSUL_BIN" agent "${CONSUL_AGENT_OPTS[@]}"
 }
 
 reload() {
@@ -191,10 +215,6 @@ case $1 in
         log user.info "start"
         start
         ;;
-    stop)
-        log user.info "stop"
-        stop
-        ;;
     reload)
         log user.info "reload"
         reload
@@ -206,6 +226,10 @@ case $1 in
     check)
         log user.info "check"
         check
+        ;;
+    cfssl-cert)
+        log user.info "cfssl-cert"
+        cfsslcert
         ;;
     check-cluster)
         log user.info "check-cluster"

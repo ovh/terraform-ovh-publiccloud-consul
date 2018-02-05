@@ -1,0 +1,6 @@
+[Path]
+PathExists=/etc/ssl/certs
+PathChanged=/etc/ssl/certs
+
+[Install]
+WantedBy=multi-user.target

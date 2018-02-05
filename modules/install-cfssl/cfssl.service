@@ -1,0 +1,17 @@
+[Unit]
+Description=Cfssl simple pki
+Wants=cfssl-register.service
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+User=cfssl
+EnvironmentFile=/opt/cfssl/bin/defaults.conf
+EnvironmentFile=-/etc/sysconfig/cfssl.conf
+
+ExecStartPre=/opt/cfssl/bin/cfssl-manage initca
+ExecStartPre=/opt/cfssl/bin/cfssl-manage cfsslcert
+ExecStart=/opt/cfssl/bin/cfssl-manage start
+
+[Install]
+WantedBy=network.target

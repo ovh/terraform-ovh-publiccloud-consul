@@ -18,6 +18,40 @@ TPL
   }
 }
 
+data "template_file" "cfssl_files" {
+  count = "${var.cfssl ? 1 : 0}"
+
+  template = <<TPL
+- path: /opt/cfssl/cacert/ca.pem
+  mode: 0644
+  uid: 1011
+  content: |
+     ${indent(5, var.cacert)}
+- path: /opt/cfssl/cacert/ca-key.pem
+  mode: 0600
+  uid: 1011
+  content: |
+     ${indent(5, var.cacert_key)}
+- path: /etc/sysconfig/cfssl.conf
+  mode: 0644
+  content: |
+     CFSSL_MODE=server
+     CA_VALIDITY_PERIOD=${var.cfssl_ca_validity_period}
+     CERT_VALIDITY_PERIOD=${var.cfssl_cert_validity_period}
+     CN=${var.cfssl_cn == "" ? var.domain : var.cfssl_cn}
+     C=${var.cfssl_c == "" ? var.datacenter : var.cfssl_c}
+     L=${var.cfssl_l}
+     O=${var.cfssl_o}
+     OU=${var.cfssl_ou}
+     ST=${var.cfssl_st}
+     KEY_ALGO=${var.cfssl_key_algo}
+     KEY_SIZE=${var.cfssl_key_size}
+     CFSSL_HOSTNAMES=cfssl.service.${var.domain},cfssl.service.${var.datacenter}.${var.domain},127.0.0.1,localhost
+     CFSSL_BIND=${var.cfssl_bind}
+     CFSSL_PORT=${var.cfssl_port}
+TPL
+}
+
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
 data "template_cloudinit_config" "config" {
@@ -41,6 +75,7 @@ ca-certs:
     - ${var.cacert}
 write_files:
   ${indent(2, join("\n", data.template_file.additional_files.*.rendered))}
+  ${indent(2, join("\n", data.template_file.cfssl_files.*.rendered))}
   - path: /etc/sysconfig/consul.conf
     content: |
       DOMAIN=${var.domain}

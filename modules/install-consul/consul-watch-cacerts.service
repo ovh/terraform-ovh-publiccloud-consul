@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch cacerts registered in consul and install them
+PartOf=consul.service
+After=consul.service
+Requires=consul.service
+Wants=update-ca-cert.path
+
+[Service]
+User=root
+Restart=on-failure
+RestartSec=10s
+
+ExecStart=/opt/consul/bin/watch-cacerts.sh watch

@@ -1,0 +1,186 @@
+#!/bin/bash
+# This script can be used to install Cfssl and its dependencies. This script has been tested with CoreOS & CentOS 7 operating systems.
+
+set -e
+
+readonly DEFAULT_INSTALL_PATH="/opt/cfssl"
+readonly DEFAULT_CFSSL_USER="cfssl"
+readonly DEFAULT_CFSSL_USER_UID="1011"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_NAME="$(basename "$0")"
+
+function print_usage {
+  echo
+  echo "Usage: install-cfssl [OPTIONS]"
+  echo
+  echo "This script can be used to install Cfssl and its dependencies. This script has been tested with CentOS 7."
+  echo
+  echo "Options:"
+  echo
+  echo -e "  --version\t\tThe version of Cfssl to install. Required."
+  echo -e "  --sha256sum\t\tThe sha256 checksum of the Cfssl binary. Required."
+  echo -e "  --path\t\tThe path where Cfssl should be installed. Optional. Default: $DEFAULT_INSTALL_PATH."
+  echo
+  echo "Example:"
+  echo
+  echo "  install-cfssl --version 1.0.0"
+}
+
+function log {
+  local readonly level="$1"
+  local readonly message="$2"
+  local readonly timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  >&2 echo -e "${timestamp} [${level}] [$SCRIPT_NAME] ${message}"
+}
+
+function log_info {
+  local readonly message="$1"
+  log "INFO" "$message"
+}
+
+function log_warn {
+  local readonly message="$1"
+  log "WARN" "$message"
+}
+
+function log_error {
+  local readonly message="$1"
+  log "ERROR" "$message"
+}
+
+function assert_not_empty {
+  local readonly arg_name="$1"
+  local readonly arg_value="$2"
+
+  if [[ -z "$arg_value" ]]; then
+    log_error "The value for '$arg_name' cannot be empty"
+    print_usage
+    exit 1
+  fi
+}
+
+# Install steps are based on: http://stackoverflow.com/a/31576473/483528
+function setup_systemd_services {
+    local readonly username="$1"
+
+    sudo cp "$SCRIPT_DIR/cfssl.service" "/etc/systemd/system/cfssl.service"
+    sudo cp "$SCRIPT_DIR/cfssl-register.service" "/etc/systemd/system/cfssl-register.service"
+    sudo cp "$SCRIPT_DIR/cfssl.path" "/etc/systemd/system/cfssl.path"
+    sudo sed -i -e "s,/opt/cfssl,$path,g" "/etc/systemd/system/cfssl.service"
+    sudo sed -i -e "s,/opt/cfssl,$path,g" "/etc/systemd/system/cfssl-register.service"
+    sudo sed -i -e s/User=cfssl/User=$username/g "/etc/systemd/system/cfssl.service"
+
+    sudo systemctl enable cfssl.path
+
+    # disable firewalld. TODO: make a proper setup for cfssl
+    if systemctl list-unit-files --all | grep -q firewalld.service; then
+        sudo systemctl stop firewalld
+        sudo systemctl mask firewalld
+    fi
+}
+
+function user_exists {
+    local readonly username="$1"
+    id "$username" >/dev/null 2>&1
+}
+
+function create_cfssl_user {
+    local readonly username="$1"
+
+    if $(user_exists "$username"); then
+        echo "User $username already exists. Will not create again."
+    else
+        log_info "Creating user named $username"
+        sudo useradd -u "${DEFAULT_CFSSL_USER_UID}" "$username"
+    fi
+}
+
+function install_binaries {
+  local readonly version="$1"
+  local readonly sha256sum="$2"
+  local readonly path="$3"
+  local readonly user="$4"
+  local readonly url="https://pkg.cfssl.org/${version}/cfssl_linux-amd64"
+  local readonly urljson="https://pkg.cfssl.org/${version}/cfssljson_linux-amd64"
+
+  log_info "Creating install dir for Cfssl at $path"
+  sudo mkdir -p "$path/bin"
+
+  log_info "Downloading Cfssl $version from $url to /tmp"
+  curl -L -o "/tmp/cfssl" "$url"
+  local dl_sha256=$(sha256sum "/tmp/cfssl" | awk '{print $1}')
+  if [ "$sha256sum" != "$dl_sha256" ]; then
+      log_error "dl binary checksum error $sha256sum != $dl_sha256"
+      exit 1
+  fi
+
+  curl -L -o "/tmp/cfssljson" "$urljson"
+  local dl_sha256=$(sha256sum "/tmp/cfssljson" | awk '{print $1}')
+  if [ "1c9e628c3b86c3f2f8af56415d474c9ed4c8f9246630bd21c3418dbe5bf6401e" != "$dl_sha256" ]; then
+      log_error "dl binary checksum error 1c9e628c3b86c3f2f8af56415d474c9ed4c8f9246630bd21c3418dbe5bf6401e != $dl_sha256"
+      exit 1
+  fi
+
+  sudo cp "$SCRIPT_DIR/cfssl-manage" \
+       "$SCRIPT_DIR/defaults.conf" \
+       "$SCRIPT_DIR/functions.sh" "$path/bin"
+
+  sudo mv /tmp/cfssl /tmp/cfssljson "$path/bin"
+  sudo chmod a+x "$path/bin/cfssl" "$path/bin/cfssljson" "$path/bin/cfssl-manage"
+  sudo chown -R "$user:$user" "$path"
+}
+
+function install {
+  local version=""
+  local path="$DEFAULT_INSTALL_PATH"
+  local user="$DEFAULT_CFSSL_USER"
+
+  while [[ $# > 0 ]]; do
+    local key="$1"
+
+    case "$key" in
+      --version)
+        version="$2"
+        shift
+        ;;
+      --sha256sum)
+          sha256sum="$2"
+          shift
+          ;;
+      --path)
+        path="$2"
+        shift
+        ;;
+      --user)
+          user="$2"
+          shift
+          ;;
+      --help)
+        print_usage
+        exit
+        ;;
+      *)
+        log_error "Unrecognized argument: $key"
+        print_usage
+        exit 1
+        ;;
+    esac
+
+    shift
+  done
+
+  assert_not_empty "--version" "$version"
+  assert_not_empty "--sha256sum" "$sha256sum"
+  assert_not_empty "--path" "$path"
+  assert_not_empty "--user" "$user"
+
+  log_info "Starting Cfssl install"
+
+  create_cfssl_user "$user"
+  install_binaries "$version" "$sha256sum" "$path" "$user"
+  setup_systemd_services "$user"
+
+  log_info "Cfssl install complete!"
+}
+
+install "$@"

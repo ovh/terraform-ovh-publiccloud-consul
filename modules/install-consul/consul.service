@@ -2,13 +2,14 @@
 Description=consul agent
 Requires=network-online.target
 After=network-online.target
+Wants=consul-watch-cfssl.service consul-watch-cacerts.service
 
 [Service]
 User=consul
 Restart=on-failure
-ExecStartPre=-/opt/consul/bin/consul-manage conf
+
+ExecStartPre=/opt/consul/bin/consul-manage conf
 ExecStart=/opt/consul/bin/consul-manage start
-ExecReload=/opt/consul/bin/consul-manage reload
 
 [Install]
 WantedBy=multi-user.target

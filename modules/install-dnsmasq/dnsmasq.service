@@ -26,4 +26,4 @@ ExecStartPost=/bin/sh -c 'echo "[Resolve]\nDNS=127.0.0.1" > /etc/systemd/resolve
 ExecStopPost=/bin/sh -c 'grep -v "[Resolve]\n" > /etc/systemd/resolved.conf && systemctl restart systemd-resolved'
 
 [Install]
-WantedBy=network.target
+WantedBy=multi-user.target

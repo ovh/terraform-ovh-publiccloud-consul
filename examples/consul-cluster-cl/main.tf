@@ -1,11 +1,11 @@
 provider "ovh" {
-  version = "~> 0.2"
+  version  = "~> 0.2"
   endpoint = "ovh-eu"
 }
 
 provider "openstack" {
   version = "~> 1.2"
-  region = "${var.region}"
+  region  = "${var.region}"
 }
 
 # Import Keypair
@@ -16,7 +16,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 
 module "network" {
   source  = "ovh/publiccloud-network/ovh"
-  version = ">= 0.0.19"
+  version = ">= 0.0.20"
 
   attach_vrack    = false
   project_id      = "${var.project_id}"
@@ -36,7 +36,6 @@ module "network" {
     Terraform   = "true"
     Environment = "Consul"
   }
-
 }
 
 module "consul_servers" {
@@ -44,18 +43,19 @@ module "consul_servers" {
   #  version         = ">= 0.0.8"
   source = "../.."
 
-  count                 = 3
-  name                  = "example_consul_cluster_coreos"
-  cidr                  = "${var.cidr}"
-  region                = "${var.region}"
-  datacenter            = "${lower(var.region)}"
-  subnet_ids            = ["${module.network.public_subnets[0]}"]
-  ssh_public_keys       = ["${openstack_compute_keypair_v2.keypair.public_key}"]
-  associate_public_ipv4 = true
+  count           = 3
+  name            = "example_consul_cluster_coreos"
+  cidr            = "${var.cidr}"
+  region          = "${var.region}"
+  datacenter      = "${lower(var.region)}"
+  subnet_ids      = ["${module.network.private_subnets[0]}"]
+  ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
+  flavor_name     = "s1-2"
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
-  ssh_user                = "core"
+  ssh_user = "core"
+
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
   ssh_bastion_host        = "${module.network.bastion_public_ip}"
   ssh_bastion_user        = "core"
@@ -69,7 +69,6 @@ module "consul_servers" {
     Terraform   = "true"
     Environment = "Consul"
   }
-
 }
 
 resource "openstack_networking_port_v2" "port_private_instance" {
@@ -91,13 +90,14 @@ module "userdata" {
   cidr_blocks     = ["${var.cidr}"]
   ssh_public_keys = ["${openstack_compute_keypair_v2.keypair.public_key}"]
   join_ipv4_addr  = ["${module.consul_servers.ipv4_addrs}"]
+  ignition_mode   = false
 }
 
 resource "openstack_compute_instance_v2" "my_private_instance" {
   name        = "example_consul_client"
   image_name  = "Centos 7"
   flavor_name = "s1-8"
-  user_data   = "${module.userdata.cloudinit}"
+  user_data   = "${module.userdata.rendered[0]}"
 
   network {
     access_network = true

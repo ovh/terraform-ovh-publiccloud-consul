@@ -1,11 +1,11 @@
 provider "ovh" {
-  version = "~> 0.2"
+  version  = "~> 0.2"
   endpoint = "ovh-eu"
 }
 
 provider "openstack" {
   version = "~> 1.2"
-  region = "${var.region}"
+  region  = "${var.region}"
 }
 
 module "network" {
@@ -44,12 +44,13 @@ module "consul_servers" {
   datacenter      = "${lower(var.region)}"
   subnet_ids      = ["${module.network.private_subnets[0]}"]
   ssh_public_keys = ["${file("~/.ssh/id_rsa.pub")}"]
-
-  image_name              = "Centos 7"
+  image_name      = "Centos 7"
+  cfssl           = true
 
   ### comment the following block if you're using a glance image with
   ### pre provisionned software.
-  ignition_mode           = false
+  ignition_mode = false
+
   ssh_user                = "centos"
   ssh_private_key         = "${file("~/.ssh/id_rsa")}"
   ssh_bastion_host        = "${module.network.bastion_public_ip}"

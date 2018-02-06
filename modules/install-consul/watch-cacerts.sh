@@ -7,9 +7,9 @@ watch(){
 }
 
 handler(){
-    CERTS_DIR=/etc/ssl/certs
+    # if yum -> fedora family, else coreos container linux
     for i in $(jq -r '.[]|[.Key,.Value]|join(",")'); do
-        echo "$i" | cut -d, -f2 | base64 -d | tee "$CERTS_DIR/$(echo "$i" | cut -d, -f1 | sed 's/\//_/g' ).pem"
+        echo "$i" | cut -d, -f2 | base64 -d | tee "$CACERTS_INSTALL_DIR/$(echo "$i" | cut -d, -f1 | sed 's/\//_/g' ).pem"
     done
 }
 

@@ -1,6 +1,6 @@
 locals {
-  ip_route_add_tpl        = "- ip route add %s dev %s scope link metric 0"
-  eth_route_tpl           = "%s dev %s scope link metric 0"
+  ip_route_add_tpl = "- ip route add %s dev %s scope link metric 0"
+  eth_route_tpl    = "%s dev %s scope link metric 0"
 }
 
 data "template_file" "additional_files" {
@@ -19,7 +19,7 @@ TPL
 }
 
 data "template_file" "cfssl_files" {
-  count = "${var.cfssl ? 1 : 0}"
+  count = "${var.count}"
 
   template = <<TPL
 - path: /opt/cfssl/cacert/ca.pem
@@ -35,7 +35,7 @@ data "template_file" "cfssl_files" {
 - path: /etc/sysconfig/cfssl.conf
   mode: 0644
   content: |
-     CFSSL_MODE=server
+     CFSSL_MODE=${count.index == 0 ? "server" : "off"}
      CA_VALIDITY_PERIOD=${var.cfssl_ca_validity_period}
      CERT_VALIDITY_PERIOD=${var.cfssl_cert_validity_period}
      CN=${var.cfssl_cn == "" ? var.domain : var.cfssl_cn}
@@ -49,12 +49,14 @@ data "template_file" "cfssl_files" {
      CFSSL_HOSTNAMES=cfssl.service.${var.domain},cfssl.service.${var.datacenter}.${var.domain},127.0.0.1,localhost
      CFSSL_BIND=${var.cfssl_bind}
      CFSSL_PORT=${var.cfssl_port}
+     CACERTS_INSTALL_DIR=/etc/pki/ca-trust/source/anchors
 TPL
 }
 
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
 data "template_cloudinit_config" "config" {
+  count         = "${var.ignition_mode ? 0 : var.count}"
   gzip          = true
   base64_encode = true
 
@@ -75,7 +77,7 @@ ca-certs:
     - ${var.cacert}
 write_files:
   ${indent(2, join("\n", data.template_file.additional_files.*.rendered))}
-  ${indent(2, join("\n", data.template_file.cfssl_files.*.rendered))}
+  ${var.cfssl ? indent(2, element(data.template_file.cfssl_files.*.rendered, count.index)) : ""}
   - path: /etc/sysconfig/consul.conf
     content: |
       DOMAIN=${var.domain}
@@ -86,6 +88,7 @@ write_files:
       JOIN_IPV4_ADDR=${join(",", var.join_ipv4_addr)}
       JOIN_IPV4_ADDR_WAN=${join(",", var.join_ipv4_addr_wan)}
       CONSUL_AGENT_TAGS=${join(",", var.agent_tags)}
+      CACERTS_INSTALL_DIR=/etc/pki/ca-trust/source/anchors
   - path: /etc/sysconfig/network-scripts/route-eth0
     content: |
       ${indent(6, join("\n", formatlist(local.eth_route_tpl, var.cidr_blocks, "eth0")))}

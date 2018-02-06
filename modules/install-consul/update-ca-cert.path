@@ -1,6 +1,11 @@
 [Path]
+# coreos container linux
 PathExists=/etc/ssl/certs
 PathChanged=/etc/ssl/certs
+
+# fedora family
+PathExists=/etc/pki/ca-trust/source/anchors
+PathChanged=/etc/pki/ca-trust/source/anchors
 
 [Install]
 WantedBy=multi-user.target

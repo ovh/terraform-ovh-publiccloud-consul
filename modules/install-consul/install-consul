@@ -92,7 +92,7 @@ function install_dependencies {
   log_info "Installing dependencies"
 
   if [ -n "$(command -v yum)" ]; then
-      sudo yum install -y curl unzip nmap-ncat bind-utils
+      sudo yum install -y curl unzip nmap-ncat bind-utils jq
   elif [ -n "$(command -v coreos-install)" ]; then
        log_info "Nothing to do for coreos"
   else

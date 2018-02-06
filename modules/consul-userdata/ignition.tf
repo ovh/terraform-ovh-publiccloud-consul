@@ -67,14 +67,14 @@ CONTENT
 }
 
 data "ignition_file" "cfssl-conf" {
-  count      = "${var.cfssl ? 1 : 0}"
+  count      = "${var.count}"
   filesystem = "root"
   mode       = "0644"
   path       = "/etc/sysconfig/cfssl.conf"
 
   content {
     content = <<CONTENT
-CFSSL_MODE=server
+CFSSL_MODE=${count.index == 0 ? "server" : "off"}
 CA_VALIDITY_PERIOD=${var.cfssl_ca_validity_period}
 CERT_VALIDITY_PERIOD=${var.cfssl_cert_validity_period}
 CN=${var.cfssl_cn == "" ? var.domain : var.cfssl_cn}
@@ -133,6 +133,7 @@ data "ignition_user" "core" {
 }
 
 data "ignition_config" "coreos" {
+  count = "${var.ignition_mode ? var.count : 0 }"
   users = ["${data.ignition_user.core.id}"]
 
   systemd = [
@@ -150,6 +151,6 @@ data "ignition_config" "coreos" {
     "${data.ignition_file.cfssl-cacert.*.id}",
     "${data.ignition_file.cfssl-cakey.*.id}",
     "${data.ignition_file.consul-conf.id}",
-    "${data.ignition_file.cfssl-conf.*.id}",
+    "${var.cfssl ? element(data.ignition_file.cfssl-conf.*.id, count.index) : ""}",
   ]
 }

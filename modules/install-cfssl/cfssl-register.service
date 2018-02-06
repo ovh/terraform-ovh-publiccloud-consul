@@ -5,11 +5,10 @@ After=consul.service cfssl.service
 
 [Service]
 Restart=on-failure
-RemainAfterExit=true
 RestartSec=10s
 
+ExecStartPre=/opt/cfssl/bin/cfssl-manage register-ca
 ExecStart=/opt/cfssl/bin/cfssl-manage register
-ExecStop=/opt/cfssl/bin/cfssl-manage deregister
 
 [Install]
 WantedBy=multi-user.target

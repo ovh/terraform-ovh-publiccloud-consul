@@ -34,14 +34,14 @@ conf(){
 }
 EOF
 
-    if openssl verify -purpose sslserver -CAfile "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem" "${CONSUL_CERTDIR}/cert.pem" \
+    if openssl verify -purpose sslserver -CAfile "${CACERTS_INSTALL_DIR}/cacerts_${DATACENTER}_${DOMAIN}.pem" "${CONSUL_CERTDIR}/cert.pem" \
             && [ -f "${CONSUL_CERTDIR}/cert-key.pem" ]; then
         cat > "$CONSUL_CONFDIR/tls.json" <<EOF
 {
     "ports": {
       "https": 8503
     },
-    "ca_file": "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem",
+    "ca_file": "${CACERTS_INSTALL_DIR}/cacerts_${DATACENTER}_${DOMAIN}.pem",
     "cert_file": "${CONSUL_CERTDIR}/cert.pem",
     "key_file": "${CONSUL_CERTDIR}/cert-key.pem",
     "verify_incoming": false,
@@ -55,6 +55,7 @@ EOF
     if [ ! -z "${CONSUL_ENCRYPTKEY}" ]; then
         cat > "$CONSUL_CONFDIR/encrypt.json" <<EOF
 {
+
     "encrypt": "${CONSUL_ENCRYPTKEY}"
 }
 EOF
@@ -85,7 +86,7 @@ function cfsslcert(){
                       -d '{ "request": {"hosts":["127.0.0.1", "localhost"], "CN": "'${DOMAIN}'" },  "profile": "server"}'\
                       https://$cfsslhost:${CFSSL_PORT:-8888}/api/v1/cfssl/newcert 2>/dev/null)
 
-    if  echo "$certs_json" | jq -r '.result.certificate' | openssl verify -purpose sslserver -CAfile "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem" 2>/dev/null; then \
+    if  echo "$certs_json" | jq -r '.result.certificate' | openssl verify -purpose sslserver -CAfile "${CACERTS_INSTALL_DIR}/cacerts_${DATACENTER}_${DOMAIN}.pem" 2>/dev/null; then \
         # generating files in temp dir before copying it because a watcher on the directory CONSUL_CERTDIR may interrupt the current process
         certs_dir_temp=$(mktemp -d)
         echo "$certs_json" | jq -r '.result.certificate' > "${certs_dir_temp}"/cert.pem

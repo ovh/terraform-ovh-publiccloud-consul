@@ -18,6 +18,9 @@ if [ -f "/etc/sysconfig/consul.conf" ]; then
     source "/etc/sysconfig/consul.conf"
 fi
 
+# support for fedora family
+CACERTS_INSTALL_DIR=$(if which yum > /dev/null; then echo "/etc/pki/ca-trust/source/anchors"; else echo "${CACERTS_INSTALL_DIR}"; fi)
+
 function lookup_path_in_instance_metadata {
     local readonly path="$1"
     curl --fail --silent --show-error --location "$INSTANCE_METADATA_URL/$path/"

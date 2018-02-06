@@ -1,3 +1,8 @@
+variable "count" {
+  description = "Specifies the number of nodes in the cluster"
+  default     = 1
+}
+
 variable "ignition_mode" {
   description = "Defines if main output is in ignition or cloudinit format"
   default     = true

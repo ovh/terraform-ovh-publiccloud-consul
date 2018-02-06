@@ -96,7 +96,7 @@ EOF
             echo "failed to gen cacert" >&1
             exit 1
         fi
-        chmod 0600 "${CERTS_PATH}/ca-key.pem"
+        chmod 0600 "${CACERT_PATH}/ca-key.pem"
     fi
 }
 
@@ -109,6 +109,10 @@ start() {
         -config ${CACERT_PATH}/ca-config.json \
         -tls-cert ${CERTS_PATH}/cfssl.pem \
         -tls-key ${CERTS_PATH}/cfssl-key.pem
+}
+
+function registerca(){
+    cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
 }
 
 function register(){
@@ -126,7 +130,7 @@ function register(){
         "Address": "${address}",
         "Port": ${CFSSL_PORT},
         "Check": {
-            "DeregisterCriticalServiceAfter": "90m",
+            "DeregisterCriticalServiceAfter": "5m",
             "http": "https://${address}:${CFSSL_PORT}/api/v1/cfssl/scaninfo",
             "tls_skip_verify": true,
             "interval": "10s"
@@ -134,13 +138,13 @@ function register(){
     }
 EOF
 
-    /usr/bin/curl --silent --fail --request PUT \
-                  --data @"${SCRIPT_DIR}/consul-service.json" \
-                  http://127.0.0.1:8500/v1/agent/service/register
-
     # as we register the service we also register the cacert
     # to keep the cert well formatted we encode it before putting it in consul
-    cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
+    /usr/bin/curl --silent --fail --request PUT \
+                  --data @"${SCRIPT_DIR}/consul-service.json" \
+                  http://127.0.0.1:8500/v1/agent/service/register \
+
+                  cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
 
 }
 
@@ -174,6 +178,10 @@ case $1 in
     register)
         log user.info "register"
         register
+        ;;
+    register-ca)
+        log user.info "register-ca"
+        registerca
         ;;
     *)
         log user.info "check"

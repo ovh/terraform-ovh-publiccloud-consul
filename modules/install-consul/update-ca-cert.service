@@ -3,7 +3,4 @@ Description=Update cacert
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/update-ca-certificates
-
-[Install]
-WantedBy=network.target
+ExecStart=/bin/sh -c 'if [ -f /usr/sbin/update-ca-certificates ]; then update-ca-certificates; elif [ -f /usr/bin/update-ca-trust ]; then update-ca-trust; else exit 1; fi'

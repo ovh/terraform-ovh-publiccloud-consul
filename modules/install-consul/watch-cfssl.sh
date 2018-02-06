@@ -11,7 +11,7 @@ handler(){
         # generating new tls certs if there's no certs or existing certs are	 older than one hour."
         if [ ! -f "${CONSUL_CERTDIR}/cert.pem" ] \
                || find "${CONSUL_CERTDIR}/cert.pem" -mmin "+60" | egrep '*' \
-               || ! openssl verify -purpose sslserver -CAfile "/etc/ssl/certs/cacerts_${DATACENTER}_${DOMAIN}.pem" "${CONSUL_CERTDIR}/cert.pem"; then
+               || ! openssl verify -purpose sslserver -CAfile "${CACERTS_INSTALL_DIR}/cacerts_${DATACENTER}_${DOMAIN}.pem" "${CONSUL_CERTDIR}/cert.pem"; then
             log user.info "generating consul new certs (either too old, no existent or invalid)"
             "${SCRIPT_DIR}/consul-manage" cfssl-cert
         fi

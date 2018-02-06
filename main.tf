@@ -34,7 +34,7 @@ data "openstack_networking_network_v2" "ext_net" {
 }
 
 resource "openstack_networking_secgroup_v2" "servers_sg" {
-  name        = "${var.name}_${var.agent_mode}_sg"
+  name        = "${var.name}_sg"
   description = "${var.name} security group for consul ${var.agent_mode} hosts"
 }
 
@@ -60,7 +60,7 @@ resource "openstack_networking_secgroup_rule_v2" "in_traffic_udp" {
 
 resource "openstack_networking_secgroup_v2" "public_servers_sg" {
   count       = "${var.associate_public_ipv4 ? 1 : 0}"
-  name        = "${var.name}_${var.agent_mode}s_pub_sg"
+  name        = "${var.name}_pub_sg"
   description = "${var.name} security group for public ingress traffic on consul ${var.agent_mode} hosts"
 }
 
@@ -98,18 +98,23 @@ resource "openstack_networking_port_v2" "port_consul" {
 }
 
 resource "openstack_compute_servergroup_v2" "consul" {
-  name     = "${var.name}-consul-${var.agent_mode}s-servergroup"
+  count    = "${var.count > 0 ? 1 + var.count / 3 : 0}"
+  name     = "${var.name}-servergroup_${count.index}"
   policies = ["anti-affinity"]
 }
 
 module "userdata" {
   source                  = "./modules/consul-userdata"
+  ignition_mode           = "${var.ignition_mode}"
+  count                   = "${var.count}"
   domain                  = "${var.domain}"
   datacenter              = "${var.datacenter}"
   agent_mode              = "${var.agent_mode}"
   agent_tags              = ["${var.agent_tags}"]
   cidr_blocks             = ["${concat(list(var.cidr), data.openstack_networking_subnet_v2.subnets.*.cidr)}"]
   cacert                  = "${var.cacert}"
+  cacert_key              = "${var.cacert_key}"
+  cfssl                   = "${var.cfssl}"
   bootstrap_expect        = "${var.count}"
   public_facing           = "${var.associate_public_ipv4}"
   ssh_public_keys         = ["${var.ssh_public_keys}"]
@@ -127,7 +132,7 @@ resource "openstack_compute_instance_v2" "public_consul" {
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
   flavor_name = "${var.flavor_name}"
-  user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
+  user_data   = "${element(module.userdata.rendered, count.index)}"
 
   network {
     access_network = true
@@ -140,7 +145,7 @@ resource "openstack_compute_instance_v2" "public_consul" {
   }
 
   scheduler_hints {
-    group = "${openstack_compute_servergroup_v2.consul.id}"
+    group = "${element(openstack_compute_servergroup_v2.consul.*.id, count.index / 3 )}"
   }
 
   # The Openstack Instances will use these tags to automatically discover each other and form a cluster.
@@ -155,7 +160,7 @@ resource "openstack_compute_instance_v2" "consul" {
   image_id = "${element(coalescelist(data.openstack_images_image_v2.consul.*.id, list(var.image_id)), 0)}"
 
   flavor_name = "${var.flavor_name}"
-  user_data   = "${var.ignition_mode ? module.userdata.ignition : module.userdata.cloudinit}"
+  user_data   = "${element(module.userdata.rendered, count.index)}"
 
   network {
     access_network = true
@@ -163,7 +168,7 @@ resource "openstack_compute_instance_v2" "consul" {
   }
 
   scheduler_hints {
-    group = "${openstack_compute_servergroup_v2.consul.id}"
+    group = "${element(openstack_compute_servergroup_v2.consul.*.id, count.index / 3 )}"
   }
 
   # The Openstack Instances will use these tags to automatically discover each other and form a cluster.
@@ -174,6 +179,18 @@ resource "openstack_compute_instance_v2" "consul" {
 
 module "post_install_consul" {
   source                  = "./modules/install-consul"
+  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
+  triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
+  ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
+  ssh_user                = "${var.ssh_user}"
+  ssh_private_key         = "${var.ssh_private_key}"
+  ssh_bastion_host        = "${var.ssh_bastion_host}"
+  ssh_bastion_user        = "${var.ssh_bastion_user}"
+  ssh_bastion_private_key = "${var.ssh_bastion_private_key}"
+}
+
+module "post_install_cfssl" {
+  source                  = "./modules/install-cfssl"
   count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
@@ -215,6 +232,7 @@ resource "null_resource" "post_provisionning" {
     nodeid             = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
     inline             = "${md5(join("", var.provision_remote_exec))}"
     install_consul_id  = "${var.post_install_module || var.post_install_modules ? element(module.post_install_consul.install_ids, count.index) : ""}"
+    install_cfssl_id   = "${var.post_install_module || var.post_install_modules ? element(module.post_install_cfssl.install_ids, count.index) : ""}"
     install_fabio_id   = "${var.post_install_module || var.post_install_modules ? element(module.post_install_fabio.install_ids, count.index) : ""}"
     install_dnsmasq_id = "${var.post_install_module || var.post_install_modules ? element(module.post_install_dnsmasq.install_ids, count.index) : ""}"
   }
@@ -242,6 +260,7 @@ data "template_file" "consul_instances_ids" {
   vars {
     consul_id          = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
     install_consul_id  = "${element(coalescelist(module.post_install_consul.install_ids, list("")), count.index)}"
+    install_cfssl_id   = "${element(coalescelist(module.post_install_cfssl.install_ids, list("")), count.index)}"
     install_fabio_id   = "${element(coalescelist(module.post_install_fabio.install_ids, list("")), count.index)}"
     install_dnsmasq_id = "${element(coalescelist(module.post_install_dnsmasq.install_ids, list("")), count.index)}"
     post_provision_id  = "${element(coalescelist(null_resource.post_provisionning.*.id, list("")), count.index)}"

@@ -179,7 +179,7 @@ resource "openstack_compute_instance_v2" "consul" {
 
 module "post_install_consul" {
   source                  = "./modules/install-consul"
-  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
+  count                   = "${var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -191,7 +191,7 @@ module "post_install_consul" {
 
 module "post_install_cfssl" {
   source                  = "./modules/install-cfssl"
-  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
+  count                   = "${var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -203,7 +203,7 @@ module "post_install_cfssl" {
 
 module "post_install_dnsmasq" {
   source                  = "./modules/install-dnsmasq"
-  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
+  count                   = "${var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -215,7 +215,7 @@ module "post_install_dnsmasq" {
 
 module "post_install_fabio" {
   source                  = "./modules/install-fabio"
-  count                   = "${var.post_install_module || var.post_install_modules ? var.count : 0}"
+  count                   = "${var.post_install_modules ? var.count : 0}"
   triggers                = ["${concat(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id)}"]
   ipv4_addrs              = ["${concat(openstack_compute_instance_v2.consul.*.access_ip_v4, openstack_compute_instance_v2.public_consul.*.access_ip_v4)}"]
   ssh_user                = "${var.ssh_user}"
@@ -231,10 +231,10 @@ resource "null_resource" "post_provisionning" {
   triggers {
     nodeid             = "${element(coalescelist(openstack_compute_instance_v2.consul.*.id, openstack_compute_instance_v2.public_consul.*.id), count.index)}"
     inline             = "${md5(join("", var.provision_remote_exec))}"
-    install_consul_id  = "${var.post_install_module || var.post_install_modules ? element(module.post_install_consul.install_ids, count.index) : ""}"
-    install_cfssl_id   = "${var.post_install_module || var.post_install_modules ? element(module.post_install_cfssl.install_ids, count.index) : ""}"
-    install_fabio_id   = "${var.post_install_module || var.post_install_modules ? element(module.post_install_fabio.install_ids, count.index) : ""}"
-    install_dnsmasq_id = "${var.post_install_module || var.post_install_modules ? element(module.post_install_dnsmasq.install_ids, count.index) : ""}"
+    install_consul_id  = "${var.post_install_modules ? element(module.post_install_consul.install_ids, count.index) : ""}"
+    install_cfssl_id   = "${var.post_install_modules ? element(module.post_install_cfssl.install_ids, count.index) : ""}"
+    install_fabio_id   = "${var.post_install_modules ? element(module.post_install_fabio.install_ids, count.index) : ""}"
+    install_dnsmasq_id = "${var.post_install_modules ? element(module.post_install_dnsmasq.install_ids, count.index) : ""}"
   }
 
   connection {

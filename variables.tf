@@ -151,11 +151,6 @@ variable "post_install_modules" {
   default     = true
 }
 
-variable "post_install_module" {
-  description = "Deprecated, use `post_install_modules` instead"
-  default     = true
-}
-
 variable "provision_remote_exec" {
   type        = "list"
   description = "List of inline remote commands to execute on post provisionning phase"

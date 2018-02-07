@@ -18,20 +18,27 @@ TPL
   }
 }
 
+data "template_file" "cfssl_ca_files" {
+  template = <<TPL
+- path: /opt/cfssl/cacert/ca.pem
+  permissions: '0644'
+  owner: cfssl:cfssl
+  content: |
+     ${indent(5, var.cacert)}
+- path: /opt/cfssl/cacert/ca-key.pem
+  permissions: '0600'
+  owner: cfssl:cfssl
+  content: |
+     ${indent(5, var.cacert_key)}
+TPL
+}
+
+
 data "template_file" "cfssl_files" {
   count = "${var.count}"
 
   template = <<TPL
-- path: /opt/cfssl/cacert/ca.pem
-  mode: 0644
-  uid: 1011
-  content: |
-     ${indent(5, var.cacert)}
-- path: /opt/cfssl/cacert/ca-key.pem
-  mode: 0600
-  uid: 1011
-  content: |
-     ${indent(5, var.cacert_key)}
+${var.cacert != "" && var.cacert_key != "" ? data.template_file.cfssl_ca_files.rendered : ""}
 - path: /etc/sysconfig/cfssl.conf
   mode: 0644
   content: |

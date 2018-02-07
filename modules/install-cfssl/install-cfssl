@@ -104,7 +104,7 @@ function install_binaries {
   local readonly urljson="https://pkg.cfssl.org/${version}/cfssljson_linux-amd64"
 
   log_info "Creating install dir for Cfssl at $path"
-  sudo mkdir -p "$path/bin"
+  sudo mkdir -p "$path"/{bin,cacert,certs}
 
   log_info "Downloading Cfssl $version from $url to /tmp"
   curl -L -o "/tmp/cfssl" "$url"

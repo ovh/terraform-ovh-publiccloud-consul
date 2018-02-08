@@ -1,0 +1,14 @@
+[Unit]
+Description=registers cfssl service in consul
+Wants=consul.service etcd.service
+After=consul.service etcd.service cfssl.service
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+
+ExecStartPre=-/opt/cfssl/bin/cfssl-manage register-ca %i
+ExecStart=/opt/cfssl/bin/cfssl-manage register %i
+
+[Install]
+WantedBy=multi-user.target

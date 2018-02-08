@@ -112,18 +112,30 @@ start() {
 }
 
 function registerca(){
-    cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
+    if [ "${1}" == "etcd" ]; then
+        # to keep the cert well formatted we encode it before putting it in consul
+        /opt/etcd/bin/etcdctl set "cacerts/${C/ /_}_${CN/ /_}" "$(cat "$CACERT_PATH"/ca.pem | base64)"
+    else
+        # by default consider consul
+        cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
+    fi
 }
 
 function register(){
-    service_id="$(althostname)_${SERVICE_NAME}"
     local address="${CFSSL_BIND}"
     if [ "${address}" == "0.0.0.0" ]; then
         address=$(getprivipaddr)
     fi
 
-    set -e
-    cat > "${SCRIPT_DIR}/consul-service.json" <<EOF
+    if [ "${1}" == "etcd" ]; then
+      /opt/etcd/bin/etcdctl set "services/${SERVICE_NAME}/$(althostname)" "${address}:${CFSSL_PORT}"
+    else
+        # by default consider consul
+        service_id="$(althostname)_${SERVICE_NAME}"
+
+        /usr/bin/curl --silent --fail --request PUT \
+                      http://127.0.0.1:8500/v1/agent/service/register \
+                      --data @- <<EOF
     {
         "ID": "${service_id}",
         "Name": "${SERVICE_NAME}",
@@ -137,15 +149,7 @@ function register(){
         }
     }
 EOF
-
-    # as we register the service we also register the cacert
-    # to keep the cert well formatted we encode it before putting it in consul
-    /usr/bin/curl --silent --fail --request PUT \
-                  --data @"${SCRIPT_DIR}/consul-service.json" \
-                  http://127.0.0.1:8500/v1/agent/service/register \
-
-                  cat "$CACERT_PATH"/ca.pem | base64 | /opt/consul/bin/consul kv put -base64 "cacerts/${C/ /_}_${CN/ /_}" -
-
+    fi
 }
 
 function deregister(){
@@ -177,11 +181,11 @@ case $1 in
         ;;
     register)
         log user.info "register"
-        register
+        register $2
         ;;
     register-ca)
         log user.info "register-ca"
-        registerca
+        registerca $2
         ;;
     *)
         log user.info "check"

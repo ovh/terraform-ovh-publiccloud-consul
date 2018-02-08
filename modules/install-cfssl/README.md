@@ -1,6 +1,6 @@
 # Cfssl Install Script
 
-This folder contains a script for installing [Cfssl](https://github.com/cfssl/cfssl) and its dependencies.
+This folder contains a script for installing [Cfssl](https://github.com/cloudflare/cfssl) and its dependencies.
 
 This script has been tested on the Container Linux & CentOS 7 operating systems.
 
@@ -47,7 +47,7 @@ The `install-cfssl` script does the following:
 
 ### Download Cfssl binary
 
-Downloads the Cfssl binary from the [github repo](https://github.com/cfssl/cfssl) 
+Downloads the Cfssl binary from the [github repo](https://github.com/cloudflare/cfssl) 
 and verifies it according to the checksum given in argument before putting it 
 in the `/opt/cfssl/bin` directory.
 

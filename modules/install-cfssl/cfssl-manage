@@ -32,9 +32,10 @@ EOF
                                    -ca="${CACERT_PATH}/ca.pem" \
                                    -ca-key="${CACERT_PATH}/ca-key.pem" \
                                    -config="${CACERT_PATH}/ca-config.json" \
-                                   -hostname="${CFSSL_HOSTNAMES}" \
+                                   -hostname="${CFSSL_HOSTNAMES//PRIVIP/$(getprivipaddr)}" \
                                    -profile=server \
                                    ${CERTS_PATH}/cfssl-csr.json | "$CFSSLJSON_BIN" -bare cfssl)
+
         if [ ! -f "${CERTS_PATH}/cfssl.pem" ] || [ ! -f "${CERTS_PATH}/cfssl-key.pem" ]; then
             echo "failed to gen cfssl cert" >&1
             exit 1

@@ -116,7 +116,6 @@ module "userdata" {
   cacert_key              = "${var.cacert_key}"
   cfssl                   = "${var.cfssl}"
   bootstrap_expect        = "${var.count}"
-  public_facing           = "${var.associate_public_ipv4}"
   ssh_public_keys         = ["${var.ssh_public_keys}"]
   join_ipv4_addr          = ["${coalescelist(var.join_ipv4_addr, flatten(openstack_networking_port_v2.port_consul.*.all_fixed_ips))}"]
   join_ipv4_addr_wan      = ["${var.join_ipv4_addr_wan}"]

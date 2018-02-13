@@ -25,7 +25,6 @@ data "ignition_file" "cacert" {
 }
 
 data "ignition_file" "cfssl-cacert" {
-  count      = "${var.cacert != "" && var.cacert_key != "" ? 1 : 0}"
   filesystem = "root"
   path       = "/opt/cfssl/cacert/ca.pem"
   mode       = "0644"
@@ -36,7 +35,6 @@ data "ignition_file" "cfssl-cacert" {
 }
 
 data "ignition_file" "cfssl-cakey" {
-  count      = "${var.cacert != "" && var.cacert_key != "" ? 1 : 0}"
   filesystem = "root"
   path       = "/opt/cfssl/cacert/ca-key.pem"
   mode       = "0600"
@@ -148,9 +146,9 @@ data "ignition_config" "coreos" {
   files = [
     "${data.ignition_file.additional-files.*.id}",
     "${data.ignition_file.cacert.*.id}",
-    "${data.ignition_file.cfssl-cacert.*.id}",
-    "${data.ignition_file.cfssl-cakey.*.id}",
     "${data.ignition_file.consul-conf.id}",
+    "${var.cfssl && count.index == 0 ? data.ignition_file.cfssl-cacert.id : ""}",
+    "${var.cfssl && count.index == 0 ? data.ignition_file.cfssl-cakey.id : ""}",
     "${var.cfssl ? element(data.ignition_file.cfssl-conf.*.id, count.index) : ""}",
   ]
 }

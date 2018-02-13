@@ -86,11 +86,6 @@ variable "bootstrap_expect" {
   default     = 1
 }
 
-variable "public_facing" {
-  description = "Determines if the node is internet public facing, meaning it has an interface with an internet public ipv4. Interface must be eth1 for internet traffic. eth0 is reserved for private traffic."
-  default     = false
-}
-
 variable "cfssl" {
   description = "Defines if cfssl shall be started and used a pki. If no cacert with associated private key is given as argument, cfssl will generate its own self signed ca cert."
   default     = false

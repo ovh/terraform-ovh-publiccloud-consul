@@ -38,7 +38,7 @@ data "template_file" "cfssl_files" {
   count = "${var.count}"
 
   template = <<TPL
-${var.cacert != "" && var.cacert_key != "" ? data.template_file.cfssl_ca_files.rendered : ""}
+${var.count == 0 && var.cacert != "" && var.cacert_key != "" ? data.template_file.cfssl_ca_files.rendered : ""}
 - path: /etc/sysconfig/cfssl.conf
   mode: 0644
   content: |

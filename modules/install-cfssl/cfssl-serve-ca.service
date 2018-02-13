@@ -1,0 +1,16 @@
+[Unit]
+Description=registers cfssl service in consul
+PartOf=cfssl.service
+After=cfssl.service
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+
+EnvironmentFile=/opt/cfssl/bin/defaults.conf
+EnvironmentFile=-/etc/sysconfig/cfssl.conf
+
+ExecStart=/usr/bin/ncat -l -k -p ${SERVE_CA_PORT} -c "cat ${CACERT_PATH}/ca.pem"
+
+[Install]
+WantedBy=multi-user.target

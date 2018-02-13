@@ -64,10 +64,12 @@ function setup_systemd_services {
     local readonly username="$1"
 
     sudo cp "$SCRIPT_DIR/cfssl.service" "/etc/systemd/system/cfssl.service"
+    sudo cp "$SCRIPT_DIR/cfssl-serve-ca.service" "/etc/systemd/system/cfssl-serve-ca.service"
     sudo cp "$SCRIPT_DIR/cfssl-register@.service" "/etc/systemd/system/cfssl-register@.service"
     sudo cp "$SCRIPT_DIR/cfssl.path" "/etc/systemd/system/cfssl.path"
     sudo sed -i -e "s,/opt/cfssl,$path,g" "/etc/systemd/system/cfssl.service"
     sudo sed -i -e "s,/opt/cfssl,$path,g" "/etc/systemd/system/cfssl-register@.service"
+    sudo sed -i -e "s,/opt/cfssl,$path,g" "/etc/systemd/system/cfssl-serve-ca.service"
     sudo sed -i -e s/User=cfssl/User=$username/g "/etc/systemd/system/cfssl.service"
 
     sudo systemctl enable cfssl.path

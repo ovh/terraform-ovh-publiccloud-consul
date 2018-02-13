@@ -1,6 +1,6 @@
 [Unit]
 Description=Cfssl simple pki
-Wants=cfssl-register@consul.service cfssl-register@etcd.service
+Wants=cfssl-register@consul.service cfssl-register@etcd.service cfssl-serve-ca.service
 
 [Service]
 Restart=on-failure
